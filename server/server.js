@@ -126,48 +126,6 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// Get User Preferences (requires authentication)
-app.get('/api/preferences', authenticateToken, async (req, res) => {
-  try {
-    const [users] = await db.query('SELECT preferences FROM users WHERE id = ?', [req.user.id]);
-    
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // If preferences is null, return empty object
-    const preferences = users[0].preferences ? JSON.parse(users[0].preferences) : {};
-    res.json(preferences);
-  } catch (error) {
-    console.error('Get preferences error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Update User Preferences (requires authentication)
-app.put('/api/preferences', authenticateToken, async (req, res) => {
-  try {
-    const { darkMode, language } = req.body;
-    
-    // Create preferences JSON object
-    const preferences = JSON.stringify({
-      darkMode: darkMode === true,
-      language: language || 'en'
-    });
-
-    // Update user preferences in database
-    await db.query(
-      'UPDATE users SET preferences = ? WHERE id = ?',
-      [preferences, req.user.id]
-    );
-
-    res.json({ message: 'Preferences updated successfully' });
-  } catch (error) {
-    console.error('Update preferences error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // Middleware to authenticate JWT token
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
