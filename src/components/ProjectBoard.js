@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+// Try alternate import syntax to fix the "invalid element type" error
+import StoryDetail from './StoryDetail.js';
 
 // API base URL - use relative paths since we're using proxy in package.json
 const API_BASE_URL = '';
@@ -29,6 +31,8 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     const [error, setError] = useState(null);
     const [activeView, setActiveView] = useState('projects');
     const [openMenuId, setOpenMenuId] = useState(null);
+    const [selectedStoryId, setSelectedStoryId] = useState(null);
+    const [showStoryDetail, setShowStoryDetail] = useState(false);
 
     // Get token from localStorage
     const getToken = () => {
@@ -428,6 +432,27 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
         updateProjectsOrder(projectsCopy.map(p => p.id));
     };
 
+    // Handle opening a story's detail view
+    const handleOpenStoryDetail = (storyId) => {
+        setSelectedStoryId(storyId);
+        setShowStoryDetail(true);
+    };
+
+    // Handle closing the story detail view
+    const handleCloseStoryDetail = () => {
+        setSelectedStoryId(null);
+        setShowStoryDetail(false);
+    };
+    
+    // Handle updating a story after editing
+    const handleStoryUpdate = (updatedStory) => {
+        setStories(stories.map(story => 
+            story.id === updatedStory.id 
+                ? updatedStory
+                : story
+        ));
+    };
+
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -651,8 +676,14 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                         className="story-card"
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOpenStoryDetail(story.id);
+                                        }}
                                     >
-                                        <h4 className="story-title">{story.title}</h4>
+                                        <h4 className="story-title">
+                                            {story.title}
+                                        </h4>
                                         {story.connextraFormat && (
                                             <p className="story-connextra">{story.connextraFormat}</p>
                                         )}
@@ -696,8 +727,14 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                         className="story-card"
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOpenStoryDetail(story.id);
+                                        }}
                                     >
-                                        <h4 className="story-title">{story.title}</h4>
+                                        <h4 className="story-title">
+                                            {story.title}
+                                        </h4>
                                         {story.connextraFormat && (
                                             <p className="story-connextra">{story.connextraFormat}</p>
                                         )}
@@ -741,8 +778,14 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                         className="story-card"
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOpenStoryDetail(story.id);
+                                        }}
                                     >
-                                        <h4 className="story-title">{story.title}</h4>
+                                        <h4 className="story-title">
+                                            {story.title}
+                                        </h4>
                                         {story.connextraFormat && (
                                             <p className="story-connextra">{story.connextraFormat}</p>
                                         )}
@@ -857,6 +900,17 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     return (
         <div className={`modern-container ${darkMode ? 'dark-mode' : ''}`}>
             {showProjectBoard ? renderBoardView() : renderProjectsView()}
+            
+            {/* Story Detail Modal */}
+            {showStoryDetail && (
+                <StoryDetail
+                    storyId={selectedStoryId}
+                    isOpen={showStoryDetail}
+                    onClose={handleCloseStoryDetail}
+                    onStoryUpdate={handleStoryUpdate}
+                    darkMode={darkMode}
+                />
+            )}
         </div>
     );
 };

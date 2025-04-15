@@ -150,10 +150,13 @@ async function initDatabase() {
         connextraFormat TEXT,
         tags JSON DEFAULT NULL,
         status ENUM('todo', 'in-progress', 'done') DEFAULT 'todo',
+        priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
+        assignee_id INT DEFAULT NULL,
         project_id INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
     
@@ -229,12 +232,74 @@ async function initDatabase() {
       console.error('Error checking or adding tags column to stories table:', error);
     }
     
+    // Add priority column to the stories table if it doesn't exist
+    try {
+      // Check if column exists first
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'stories' 
+        AND COLUMN_NAME = 'priority'
+      `);
+      
+      if (columns.length === 0) {
+        await connection.query(`
+          ALTER TABLE stories 
+          ADD COLUMN priority ENUM('low', 'medium', 'high') DEFAULT 'medium' AFTER status
+        `);
+        console.log('Added priority column to stories table');
+      } else {
+        console.log('priority column already exists in stories table');
+      }
+    } catch (error) {
+      console.error('Error checking or adding priority column to stories table:', error);
+    }
+    
+    // Add assignee_id column to the stories table if it doesn't exist
+    try {
+      // Check if column exists first
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'stories' 
+        AND COLUMN_NAME = 'assignee_id'
+      `);
+      
+      if (columns.length === 0) {
+        await connection.query(`
+          ALTER TABLE stories 
+          ADD COLUMN assignee_id INT DEFAULT NULL AFTER priority,
+          ADD CONSTRAINT fk_stories_assignee FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL
+        `);
+        console.log('Added assignee_id column to stories table');
+      } else {
+        console.log('assignee_id column already exists in stories table');
+      }
+    } catch (error) {
+      console.error('Error checking or adding assignee_id column to stories table:', error);
+    }
+    
+    // Create comments table if it doesn't exist
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS comments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        content TEXT NOT NULL,
+        story_id INT NOT NULL,
+        user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (story_id) REFERENCES stories(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    
     console.log('Database initialized successfully');
     connection.release();
   } catch (error) {
-    console.error('Database initialization failed:', error);
-    // Don't exit the process, just log the error
-    // process.exit(1);
+    console.error('Database initialization error:', error);
+    connection.release();
   }
 }
 

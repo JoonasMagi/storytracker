@@ -426,6 +426,71 @@ app.get('/api/projects/:projectId/stories', authenticateToken, async (req, res) 
   }
 });
 
+// Get a single story by ID
+app.get('/api/stories/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get story with user verification
+    const [stories] = await db.query(
+      `SELECT s.*, p.user_id as project_owner_id 
+       FROM stories s
+       JOIN projects p ON s.project_id = p.id
+       WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
+    );
+    
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found or unauthorized' });
+    }
+    
+    // Get assignee information if assigned
+    let assignee = null;
+    if (stories[0].assignee_id) {
+      const [users] = await db.query(
+        'SELECT id, email FROM users WHERE id = ?',
+        [stories[0].assignee_id]
+      );
+      if (users.length > 0) {
+        assignee = users[0];
+      }
+    }
+    
+    // Get comments for the story
+    const [comments] = await db.query(
+      `SELECT c.id, c.content, c.created_at, c.updated_at, 
+        u.id as user_id, u.email as user_email
+       FROM comments c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.story_id = ?
+       ORDER BY c.created_at ASC`,
+      [id]
+    );
+    
+    // Format the response
+    const story = {
+      ...stories[0],
+      tags: stories[0].tags ? JSON.parse(stories[0].tags) : [],
+      assignee,
+      comments: comments.map(comment => ({
+        id: comment.id,
+        content: comment.content,
+        createdAt: comment.created_at,
+        updatedAt: comment.updated_at,
+        user: {
+          id: comment.user_id,
+          email: comment.user_email
+        }
+      }))
+    };
+    
+    res.json(story);
+  } catch (error) {
+    console.error('Get story details error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Create a new story
 app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res) => {
   try {
@@ -487,7 +552,7 @@ app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res)
 app.put('/api/stories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, connextraFormat, tags, status } = req.body;
+    const { title, description, connextraFormat, tags, status, priority, assignee_id } = req.body;
     
     // Check if story exists and belongs to a project owned by the user
     const [stories] = await db.query(
@@ -533,6 +598,19 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
       }
     }
     
+    if (priority !== undefined) {
+      const validPriorities = ['low', 'medium', 'high'];
+      if (validPriorities.includes(priority)) {
+        updates.push('priority = ?');
+        values.push(priority);
+      }
+    }
+    
+    if (assignee_id !== undefined) {
+      updates.push('assignee_id = ?');
+      values.push(assignee_id || null);
+    }
+    
     if (updates.length === 0) {
       return res.status(400).json({ message: 'No valid fields to update' });
     }
@@ -546,20 +624,33 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
       values
     );
     
-    // Get the updated story
+    // Get the updated story with assignee information
     const [updatedStories] = await db.query(
-      'SELECT id, title, description, connextraFormat, tags, status, created_at, updated_at FROM stories WHERE id = ?',
-      [id]
+      `SELECT s.* FROM stories s
+       JOIN projects p ON s.project_id = p.id
+       WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
     );
     
     if (updatedStories.length === 0) {
       return res.status(404).json({ message: 'Story not found' });
     }
     
-    // Convert tags from JSON string to array if not null
+    let assignee = null;
+    if (updatedStories[0].assignee_id) {
+      const [users] = await db.query(
+        'SELECT id, email FROM users WHERE id = ?',
+        [updatedStories[0].assignee_id]
+      );
+      if (users.length > 0) {
+        assignee = users[0];
+      }
+    }
+    
     const story = {
       ...updatedStories[0],
-      tags: updatedStories[0].tags ? JSON.parse(updatedStories[0].tags) : []
+      tags: updatedStories[0].tags ? JSON.parse(updatedStories[0].tags) : [],
+      assignee
     };
     
     res.json(story);
@@ -592,6 +683,160 @@ app.delete('/api/stories/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Story deleted successfully' });
   } catch (error) {
     console.error('Delete story error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Comment routes
+
+// Add comment to a story
+app.post('/api/stories/:storyId/comments', authenticateToken, async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const { content } = req.body;
+    
+    // Validate input
+    if (!content) {
+      return res.status(400).json({ message: 'Comment content is required' });
+    }
+    
+    // Check if story exists and user has access to it
+    const [stories] = await db.query(
+      `SELECT s.* FROM stories s
+       JOIN projects p ON s.project_id = p.id
+       WHERE s.id = ? AND p.user_id = ?`,
+      [storyId, req.user.id]
+    );
+    
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found or unauthorized' });
+    }
+    
+    // Insert the comment
+    const [result] = await db.query(
+      'INSERT INTO comments (content, story_id, user_id, created_at) VALUES (?, ?, ?, NOW())',
+      [content, storyId, req.user.id]
+    );
+    
+    // Get the newly created comment
+    const [comments] = await db.query(
+      `SELECT c.id, c.content, c.created_at, c.updated_at, 
+        u.id as user_id, u.email as user_email
+       FROM comments c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.id = ?`,
+      [result.insertId]
+    );
+    
+    if (comments.length === 0) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+    
+    const comment = {
+      id: comments[0].id,
+      content: comments[0].content,
+      createdAt: comments[0].created_at,
+      updatedAt: comments[0].updated_at,
+      user: {
+        id: comments[0].user_id,
+        email: comments[0].user_email
+      }
+    };
+    
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error('Add comment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update a comment
+app.put('/api/comments/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+    
+    // Validate input
+    if (!content) {
+      return res.status(400).json({ message: 'Comment content is required' });
+    }
+    
+    // Check if comment exists and belongs to user
+    const [comments] = await db.query(
+      'SELECT * FROM comments WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    
+    if (comments.length === 0) {
+      return res.status(404).json({ message: 'Comment not found or unauthorized' });
+    }
+    
+    // Update the comment
+    await db.query(
+      'UPDATE comments SET content = ?, updated_at = NOW() WHERE id = ?',
+      [content, id]
+    );
+    
+    // Get the updated comment
+    const [updatedComments] = await db.query(
+      `SELECT c.id, c.content, c.created_at, c.updated_at, 
+        u.id as user_id, u.email as user_email
+       FROM comments c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.id = ?`,
+      [id]
+    );
+    
+    const comment = {
+      id: updatedComments[0].id,
+      content: updatedComments[0].content,
+      createdAt: updatedComments[0].created_at,
+      updatedAt: updatedComments[0].updated_at,
+      user: {
+        id: updatedComments[0].user_id,
+        email: updatedComments[0].user_email
+      }
+    };
+    
+    res.json(comment);
+  } catch (error) {
+    console.error('Update comment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete a comment
+app.delete('/api/comments/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if comment exists and belongs to user
+    const [comments] = await db.query(
+      'SELECT * FROM comments WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    
+    if (comments.length === 0) {
+      return res.status(404).json({ message: 'Comment not found or unauthorized' });
+    }
+    
+    // Delete the comment
+    await db.query('DELETE FROM comments WHERE id = ?', [id]);
+    
+    res.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all users for assignment
+app.get('/api/users', authenticateToken, async (req, res) => {
+  try {
+    const [users] = await db.query('SELECT id, email FROM users');
+    res.json(users);
+  } catch (error) {
+    console.error('Get users error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
