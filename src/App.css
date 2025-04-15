@@ -1,0 +1,20 @@
+.App {
+  text-align: center;
+}
+
+/* We're not using these styles in our authentication UI, but keeping them here
+   in case you want to use them in other parts of your application */
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
