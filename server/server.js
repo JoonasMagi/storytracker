@@ -7,10 +7,15 @@ const db = require('./db');
 
 // Initialize express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3001; // Explicitly set port to 3001 without fallback
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // JWT Secret Key
@@ -180,6 +185,385 @@ function authenticateToken(req, res, next) {
     return res.status(403).json({ message: 'Invalid token' });
   }
 }
+
+// Projects Routes
+
+// Get all projects for the authenticated user
+app.get('/api/projects', authenticateToken, async (req, res) => {
+  try {
+    const [projects] = await db.query(
+      'SELECT id, name, description, status, archived, display_order, created_at, updated_at FROM projects WHERE user_id = ? ORDER BY display_order ASC, updated_at DESC',
+      [req.user.id]
+    );
+    
+    // Format the dates for each project
+    const formattedProjects = projects.map(project => ({
+      ...project,
+      lastUpdated: project.updated_at
+    }));
+    
+    res.json(formattedProjects);
+  } catch (error) {
+    console.error('Get projects error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create a new project
+app.post('/api/projects', authenticateToken, async (req, res) => {
+  try {
+    const { name, description, status } = req.body;
+    
+    // Validate input
+    if (!name) {
+      return res.status(400).json({ message: 'Project name is required' });
+    }
+    
+    // Valid statuses
+    const validStatuses = ['in-progress', 'completed', 'on-hold'];
+    const projectStatus = validStatuses.includes(status) ? status : 'in-progress';
+    
+    // Insert the new project
+    const [result] = await db.query(
+      'INSERT INTO projects (name, description, status, user_id) VALUES (?, ?, ?, ?)',
+      [name, description || null, projectStatus, req.user.id]
+    );
+    
+    // Get the newly created project
+    const [projects] = await db.query(
+      'SELECT id, name, description, status, archived, created_at, updated_at FROM projects WHERE id = ?',
+      [result.insertId]
+    );
+    
+    if (projects.length === 0) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    
+    const project = {
+      ...projects[0],
+      lastUpdated: projects[0].updated_at
+    };
+    
+    res.status(201).json(project);
+  } catch (error) {
+    console.error('Create project error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update project order
+app.put('/api/projects/order', authenticateToken, async (req, res) => {
+  try {
+    const { projectOrder } = req.body;
+    
+    if (!Array.isArray(projectOrder)) {
+      return res.status(400).json({ message: 'Project order must be an array of project IDs' });
+    }
+    
+    // Verify all projects belong to the user
+    const [userProjects] = await db.query(
+      'SELECT id FROM projects WHERE user_id = ?',
+      [req.user.id]
+    );
+    
+    const userProjectIds = userProjects.map(p => p.id);
+    const validOrder = projectOrder.every(id => userProjectIds.includes(id));
+    
+    if (!validOrder) {
+      return res.status(403).json({ message: 'Unauthorized access to one or more projects' });
+    }
+    
+    // Update the order for each project
+    for (let i = 0; i < projectOrder.length; i++) {
+      await db.query(
+        'UPDATE projects SET display_order = ? WHERE id = ? AND user_id = ?',
+        [i, projectOrder[i], req.user.id]
+      );
+    }
+    
+    res.json({ message: 'Project order updated successfully' });
+  } catch (error) {
+    console.error('Update project order error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update a project
+app.put('/api/projects/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, status, archived } = req.body;
+    
+    // Check if project exists and belongs to user
+    const [projects] = await db.query(
+      'SELECT * FROM projects WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    
+    if (projects.length === 0) {
+      return res.status(404).json({ message: 'Project not found or unauthorized' });
+    }
+    
+    // Build update query based on provided fields
+    const updates = [];
+    const values = [];
+    
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+    
+    if (status !== undefined) {
+      const validStatuses = ['in-progress', 'completed', 'on-hold'];
+      if (validStatuses.includes(status)) {
+        updates.push('status = ?');
+        values.push(status);
+      }
+    }
+    
+    if (archived !== undefined) {
+      updates.push('archived = ?');
+      values.push(archived);
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No valid fields to update' });
+    }
+    
+    // Add the project ID and user ID to values array
+    values.push(id);
+    values.push(req.user.id);
+    
+    // Update the project
+    await db.query(
+      `UPDATE projects SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ? AND user_id = ?`,
+      values
+    );
+    
+    // Get the updated project
+    const [updatedProjects] = await db.query(
+      'SELECT id, name, status, archived, created_at, updated_at FROM projects WHERE id = ?',
+      [id]
+    );
+    
+    if (updatedProjects.length === 0) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    
+    const updatedProject = {
+      ...updatedProjects[0],
+      lastUpdated: updatedProjects[0].updated_at
+    };
+    
+    res.json(updatedProject);
+  } catch (error) {
+    console.error('Update project error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete a project
+app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if project exists and belongs to user
+    const [projects] = await db.query(
+      'SELECT * FROM projects WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    
+    if (projects.length === 0) {
+      return res.status(404).json({ message: 'Project not found or unauthorized' });
+    }
+    
+    // Delete the project (stories will be deleted via ON DELETE CASCADE)
+    await db.query(
+      'DELETE FROM projects WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    
+    res.json({ message: 'Project deleted successfully' });
+  } catch (error) {
+    console.error('Delete project error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Story routes
+
+// Get all stories for a project
+app.get('/api/projects/:projectId/stories', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    
+    // Check if project exists and belongs to user
+    const [projects] = await db.query(
+      'SELECT * FROM projects WHERE id = ? AND user_id = ?',
+      [projectId, req.user.id]
+    );
+    
+    if (projects.length === 0) {
+      return res.status(404).json({ message: 'Project not found or unauthorized' });
+    }
+    
+    // Get all stories for the project
+    const [stories] = await db.query(
+      'SELECT id, title, description, status, created_at, updated_at FROM stories WHERE project_id = ?',
+      [projectId]
+    );
+    
+    res.json(stories);
+  } catch (error) {
+    console.error('Get stories error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create a new story
+app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { title, description, status } = req.body;
+    
+    // Check if project exists and belongs to user
+    const [projects] = await db.query(
+      'SELECT * FROM projects WHERE id = ? AND user_id = ?',
+      [projectId, req.user.id]
+    );
+    
+    if (projects.length === 0) {
+      return res.status(404).json({ message: 'Project not found or unauthorized' });
+    }
+    
+    // Validate input
+    if (!title) {
+      return res.status(400).json({ message: 'Story title is required' });
+    }
+    
+    // Valid statuses
+    const validStatuses = ['todo', 'in-progress', 'done'];
+    const storyStatus = validStatuses.includes(status) ? status : 'todo';
+    
+    // Insert the new story
+    const [result] = await db.query(
+      'INSERT INTO stories (title, description, status, project_id) VALUES (?, ?, ?, ?)',
+      [title, description || '', storyStatus, projectId]
+    );
+    
+    // Get the newly created story
+    const [stories] = await db.query(
+      'SELECT id, title, description, status, created_at, updated_at FROM stories WHERE id = ?',
+      [result.insertId]
+    );
+    
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found' });
+    }
+    
+    res.status(201).json(stories[0]);
+  } catch (error) {
+    console.error('Create story error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update a story
+app.put('/api/stories/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, status } = req.body;
+    
+    // Check if story exists and belongs to a project owned by the user
+    const [stories] = await db.query(
+      `SELECT s.* FROM stories s
+      JOIN projects p ON s.project_id = p.id
+      WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
+    );
+    
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found or unauthorized' });
+    }
+    
+    // Build update query based on provided fields
+    const updates = [];
+    const values = [];
+    
+    if (title !== undefined) {
+      updates.push('title = ?');
+      values.push(title);
+    }
+    
+    if (description !== undefined) {
+      updates.push('description = ?');
+      values.push(description);
+    }
+    
+    if (status !== undefined) {
+      const validStatuses = ['todo', 'in-progress', 'done'];
+      if (validStatuses.includes(status)) {
+        updates.push('status = ?');
+        values.push(status);
+      }
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No valid fields to update' });
+    }
+    
+    // Add the story ID to values array
+    values.push(id);
+    
+    // Update the story
+    await db.query(
+      `UPDATE stories SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`,
+      values
+    );
+    
+    // Get the updated story
+    const [updatedStories] = await db.query(
+      'SELECT id, title, description, status, created_at, updated_at FROM stories WHERE id = ?',
+      [id]
+    );
+    
+    if (updatedStories.length === 0) {
+      return res.status(404).json({ message: 'Story not found' });
+    }
+    
+    res.json(updatedStories[0]);
+  } catch (error) {
+    console.error('Update story error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete a story
+app.delete('/api/stories/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if story exists and belongs to a project owned by the user
+    const [stories] = await db.query(
+      `SELECT s.* FROM stories s
+      JOIN projects p ON s.project_id = p.id
+      WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
+    );
+    
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found or unauthorized' });
+    }
+    
+    // Delete the story
+    await db.query('DELETE FROM stories WHERE id = ?', [id]);
+    
+    res.json({ message: 'Story deleted successfully' });
+  } catch (error) {
+    console.error('Delete story error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Start the server
 app.listen(PORT, () => {

@@ -13,7 +13,7 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const API_URL = 'http://localhost:3000/api';
+  const API_URL = 'http://localhost:3001/api';
   const t = translations[language];
 
   const validateEmail = () => {

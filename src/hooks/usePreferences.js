@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://localhost:3001/api';
 
 export const usePreferences = () => {
   // Initialize state directly from localStorage if available
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('darkMode') === 'true';
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      // Immediately apply dark mode class on initialization
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+    return savedDarkMode;
   });
   
   const [language, setLanguage] = useState(() => {
@@ -17,7 +24,7 @@ export const usePreferences = () => {
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Set up dark mode class on body when component mounts
+  // Set up dark mode class on body when component mounts or darkMode changes
   useEffect(() => {
     if (darkMode) {
       document.body.classList.add('dark-mode');

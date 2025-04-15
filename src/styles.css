@@ -14,6 +14,14 @@
     --hover-color: #2980b9;
     --error-color: #e74c3c;
     --success-color: #2ecc71;
+    --border-color: #e0e0e0;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+    --status-in-progress: #e7f3fe;
+    --status-in-progress-text: #0070cc;
+    --status-completed: #e6f3e6;
+    --status-completed-text: #2a9c2a;
+    --status-on-hold: #fff2e6;
+    --status-on-hold-text: #ff9800;
 }
 
 body {
@@ -32,6 +40,8 @@ body.dark-mode {
     --hover-color: #03a9f4;
     --error-color: #f44336;
     --success-color: #4caf50;
+    --border-color: #444;
+    --shadow-color: rgba(255, 255, 255, 0.05);
 }
 
 .container {
@@ -221,4 +231,673 @@ button:hover {
     z-index: 10;
     width: 40px;
     text-align: center;
+}
+
+/* Main header with title and theme toggle */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.main-header h1 {
+    margin-bottom: 0;
+}
+
+/* Theme toggle button styling */
+.theme-toggle-button {
+    background-color: var(--bg-secondary);
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-primary);
+    padding: 0;
+    margin-left: auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px var(--shadow-color);
+    transition: transform 0.2s, background-color 0.3s;
+}
+
+.theme-toggle-button:hover {
+    transform: scale(1.05);
+    background-color: var(--hover-color);
+    color: white;
+}
+
+/* In the board view, we want the button to be part of the header actions */
+.header-actions .theme-toggle-button {
+    margin-left: 0;
+}
+
+/* Header actions container for board view */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Project Board Styles for React Integration */
+.project-container {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: var(--bg-primary);
+}
+
+.project-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.project-header h2 {
+    margin: 0;
+    font-size: 22px;
+    color: var(--text-primary);
+}
+
+.back-button {
+    padding: 8px 15px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.back-button:hover {
+    background-color: var(--hover-bg);
+}
+
+.logout-button {
+    padding: 8px 15px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+    background-color: #d32f2f;
+}
+
+/* Make the dark mode toggle work well with React components */
+.dark-mode-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    z-index: 1000;
+    color: var(--text-primary);
+}
+
+/* Fix drag and drop in React */
+.story-card[draggable=true] {
+    cursor: grab;
+}
+
+.story-card[draggable=true]:active {
+    cursor: grabbing;
+}
+
+/* Responsive adjustments for the board */
+@media (max-width: 768px) {
+    .board-container {
+        flex-direction: column;
+    }
+    
+    .board-column {
+        margin-bottom: 20px;
+    }
+}
+
+/* Make sure form elements have consistent styling */
+#storyForm input,
+#storyForm textarea,
+#storyForm select,
+#storyForm button,
+#newProjectForm input,
+#newProjectForm select,
+#newProjectForm button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+#storyForm button,
+#newProjectForm button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#storyForm button:hover,
+#newProjectForm button:hover {
+    background-color: #45a049;
+}
+
+/* Board styles to match project-board.html */
+.board-container {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.board-column {
+    flex: 1;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 5px var(--shadow-color);
+}
+
+.board-column h3 {
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 18px;
+    color: var(--text-primary);
+}
+
+.column-content {
+    min-height: 400px;
+    padding: 10px 0;
+    transition: background-color 0.2s;
+}
+
+.column-content:hover {
+    background-color: var(--hover-bg);
+}
+
+.story-card {
+    background-color: white;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s;
+    color: var(--text-primary);
+}
+
+.story-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+}
+
+.add-story-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--bg-primary);
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.add-story-btn:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Project board modal styles */
+#storyModal .modal-content {
+    width: 90%;
+    max-width: 500px;
+}
+
+#storyForm {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#storyForm input,
+#storyForm textarea,
+#storyForm select {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+#storyForm textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+#storyForm button {
+    padding: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+#storyForm button:hover {
+    background-color: #45a049;
+}
+
+/* Dark mode handling for board elements */
+:root.dark-mode .story-card {
+    background-color: #2d2d2d;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+:root.dark-mode .add-story-btn {
+    border: 1px dashed var(--border-color);
+}
+
+:root.dark-mode #storyForm input,
+:root.dark-mode #storyForm textarea,
+:root.dark-mode #storyForm select {
+    background-color: #2d2d2d;
+    color: var(--text-primary);
+    border-color: #444;
+}
+
+/* Dragging styles */
+.story-card.dragging {
+    opacity: 0.5;
+}
+
+/* Modern project board styles - to match the provided image */
+.modern-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: var(--bg-primary);
+}
+
+.modern-projects-view h1 {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+    text-align: left;
+}
+
+.search-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 300px;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.filter-controls {
+    display: flex;
+    gap: 16px;
+}
+
+.status-filter {
+    min-width: 140px;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.new-project-button {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.new-project-button:hover {
+    background-color: #45a049;
+}
+
+/* Project cards grid layout */
+.modern-projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* Project card styling to match the image */
+.modern-project-card {
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.modern-project-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.modern-project-card[draggable=true]:hover {
+    cursor: grab;
+}
+
+.modern-project-card[draggable=true]:active {
+    cursor: grabbing;
+    opacity: 0.7;
+}
+
+.modern-project-card .project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.modern-project-card h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #000;
+}
+
+.project-description {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 15px;
+    margin-top: 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.last-updated {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+    margin-top: 0;
+}
+
+/* Add styles for the textarea in the project form */
+#newProjectDescription {
+    width: 100%;
+    padding: 12px;
+    min-height: 100px;
+    resize: vertical;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    margin-bottom: 15px;
+}
+
+/* Add visual cue for drag and drop */
+.dragging-helper {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 18px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: var(--primary-color);
+}
+
+.modern-project-card:hover .dragging-helper {
+    opacity: 0.5;
+}
+
+/* Dark mode adjustments */
+body.dark-mode .project-description {
+    color: #aaa;
+}
+
+body.dark-mode #newProjectDescription {
+    background-color: #333;
+    color: #fff;
+    border-color: #555;
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 400;
+    align-self: flex-start;
+}
+
+.status-in-progress {
+    background-color: #e6f3ff;
+    color: #0066cc;
+}
+
+.status-completed {
+    background-color: #e6fff0;
+    color: #00994d;
+}
+
+.status-on-hold {
+    background-color: #fff3e6;
+    color: #cc7700;
+}
+
+.menu-button {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #333;
+    padding: 0;
+    margin-top: -5px;
+    margin-right: -5px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode .menu-button {
+    color: #aaa;
+}
+
+body.dark-mode .menu-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal styling update */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: var(--bg-secondary);
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+}
+
+.close-btn {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    font-size: 28px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .search-controls {
+        flex-direction: column;
+    }
+    
+    .search-input {
+        min-width: 100%;
+    }
+    
+    .filter-controls {
+        width: 100%;
+    }
+    
+    .status-filter, .new-project-button {
+        flex: 1;
+    }
+    
+    .modern-projects-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dark mode styles for project cards */
+body.dark-mode .modern-project-card {
+    background-color: #222;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .modern-project-card h3 {
+    color: #fff;
+}
+
+body.dark-mode .last-updated {
+    color: #aaa;
+}
+
+/* Status colors remain the same in dark mode to match the image exactly */
+
+/* Project menu dropdown styling */
+.project-menu-dropdown {
+    position: absolute;
+    top: 40px;
+    right: 10px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    overflow: hidden;
+    width: 150px;
+}
+
+.menu-item {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.menu-item:last-child {
+    border-bottom: none;
+}
+
+.menu-item:hover {
+    background-color: #f8f8f8;
+}
+
+.menu-item.delete {
+    color: #d32f2f;
+}
+
+.menu-item.delete:hover {
+    background-color: #ffebee;
+}
+
+/* Dark mode styles for menu dropdown */
+body.dark-mode .project-menu-dropdown {
+    background-color: #333;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .menu-item {
+    color: #fff;
+    border-bottom-color: #444;
+}
+
+body.dark-mode .menu-item:hover {
+    background-color: #444;
+}
+
+body.dark-mode .menu-item.delete {
+    color: #ff8a80;
+}
+
+body.dark-mode .menu-item.delete:hover {
+    background-color: rgba(255, 0, 0, 0.2);
 }

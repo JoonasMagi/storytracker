@@ -12,7 +12,7 @@ const AuthContainer = ({ language, darkMode, toggleDarkMode, changeLanguage, isA
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const API_URL = 'http://localhost:3000/api';
+  const API_URL = 'http://localhost:3001/api';
   const t = translations[language];
 
   // Handle registration success
