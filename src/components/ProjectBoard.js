@@ -21,6 +21,8 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     const [storyData, setStoryData] = useState({
         title: '',
         description: '',
+        connextraFormat: '',
+        tags: [],
         status: 'todo'
     });
     const [loading, setLoading] = useState(false);
@@ -325,7 +327,13 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
 
             const newStory = await response.json();
             setStories([...stories, newStory]);
-            setStoryData({ title: '', description: '', status: 'todo' });
+            setStoryData({ 
+                title: '', 
+                description: '', 
+                connextraFormat: '', 
+                tags: [], 
+                status: 'todo' 
+            });
             setShowStoryModal(false);
         } catch (err) {
             console.error('Error creating story:', err);
@@ -435,6 +443,17 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [openMenuId]);
+
+    // Helper function to handle tag input
+    const handleTagInput = (tagString) => {
+        // Split by commas and trim whitespace, filter out empty tags
+        const tagArray = tagString
+            .split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag.length > 0);
+        
+        setStoryData({...storyData, tags: tagArray});
+    };
 
     // Render the Projects View - Updated to match the screenshot
     const renderProjectsView = () => (
@@ -633,8 +652,20 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
                                     >
-                                        {story.title}
-                                        {story.description && <p className="story-description">{story.description}</p>}
+                                        <h4 className="story-title">{story.title}</h4>
+                                        {story.connextraFormat && (
+                                            <p className="story-connextra">{story.connextraFormat}</p>
+                                        )}
+                                        {story.description && (
+                                            <p className="story-description">{story.description}</p>
+                                        )}
+                                        {story.tags && story.tags.length > 0 && (
+                                            <div className="story-tags">
+                                                {story.tags.map((tag, index) => (
+                                                    <span key={index} className="tag">{tag}</span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             }
@@ -666,8 +697,20 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
                                     >
-                                        {story.title}
-                                        {story.description && <p className="story-description">{story.description}</p>}
+                                        <h4 className="story-title">{story.title}</h4>
+                                        {story.connextraFormat && (
+                                            <p className="story-connextra">{story.connextraFormat}</p>
+                                        )}
+                                        {story.description && (
+                                            <p className="story-description">{story.description}</p>
+                                        )}
+                                        {story.tags && story.tags.length > 0 && (
+                                            <div className="story-tags">
+                                                {story.tags.map((tag, index) => (
+                                                    <span key={index} className="tag">{tag}</span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             }
@@ -699,8 +742,20 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
                                     >
-                                        {story.title}
-                                        {story.description && <p className="story-description">{story.description}</p>}
+                                        <h4 className="story-title">{story.title}</h4>
+                                        {story.connextraFormat && (
+                                            <p className="story-connextra">{story.connextraFormat}</p>
+                                        )}
+                                        {story.description && (
+                                            <p className="story-description">{story.description}</p>
+                                        )}
+                                        {story.tags && story.tags.length > 0 && (
+                                            <div className="story-tags">
+                                                {story.tags.map((tag, index) => (
+                                                    <span key={index} className="tag">{tag}</span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             }
@@ -731,30 +786,64 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                         <h2>Create New Story</h2>
                         {error && <div className="error-message">{error}</div>}
                         <form id="storyForm" onSubmit={handleAddStory}>
-                            <input 
-                                type="text" 
-                                id="storyTitle" 
-                                placeholder="Story Title"
-                                value={storyData.title}
-                                onChange={(e) => setStoryData({...storyData, title: e.target.value})}
-                                required 
-                            />
-                            <textarea 
-                                id="storyDescription" 
-                                placeholder="Description"
-                                value={storyData.description}
-                                onChange={(e) => setStoryData({...storyData, description: e.target.value})}
-                            />
-                            <select 
-                                id="storyStatus"
-                                value={storyData.status}
-                                onChange={(e) => setStoryData({...storyData, status: e.target.value})}
-                            >
-                                <option value="todo">To Do</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="done">Done</option>
-                            </select>
-                            <button type="submit" disabled={loading}>
+                            <div className="form-group">
+                                <label htmlFor="storyTitle">Title</label>
+                                <input 
+                                    type="text" 
+                                    id="storyTitle" 
+                                    placeholder="Story Title"
+                                    value={storyData.title}
+                                    onChange={(e) => setStoryData({...storyData, title: e.target.value})}
+                                    required 
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="storyConnextra">Connextra Format</label>
+                                <textarea 
+                                    id="storyConnextra" 
+                                    placeholder="As a [role], I want to [action] so that [benefit]"
+                                    value={storyData.connextraFormat}
+                                    onChange={(e) => setStoryData({...storyData, connextraFormat: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="storyDescription">Additional Description</label>
+                                <textarea 
+                                    id="storyDescription" 
+                                    placeholder="Additional details, acceptance criteria, etc."
+                                    value={storyData.description}
+                                    onChange={(e) => setStoryData({...storyData, description: e.target.value})}
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="storyTags">Tags</label>
+                                <input 
+                                    type="text" 
+                                    id="storyTags" 
+                                    placeholder="Enter tags separated by commas (e.g. frontend, bug, urgent)"
+                                    value={storyData.tags.join(', ')}
+                                    onChange={(e) => handleTagInput(e.target.value)}
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label htmlFor="storyStatus">Status</label>
+                                <select 
+                                    id="storyStatus"
+                                    value={storyData.status}
+                                    onChange={(e) => setStoryData({...storyData, status: e.target.value})}
+                                >
+                                    <option value="todo">To Do</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="done">Done</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" className="submit-btn" disabled={loading}>
                                 {loading ? 'Creating...' : 'Add Story'}
                             </button>
                         </form>

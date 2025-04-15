@@ -147,6 +147,8 @@ async function initDatabase() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         description TEXT,
+        connextraFormat TEXT,
+        tags JSON DEFAULT NULL,
         status ENUM('todo', 'in-progress', 'done') DEFAULT 'todo',
         project_id INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -177,6 +179,54 @@ async function initDatabase() {
       }
     } catch (error) {
       console.error('Error checking or adding updated_at column to stories table:', error);
+    }
+    
+    // Add connextraFormat column to the stories table if it doesn't exist
+    try {
+      // Check if column exists first
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'stories' 
+        AND COLUMN_NAME = 'connextraFormat'
+      `);
+      
+      if (columns.length === 0) {
+        await connection.query(`
+          ALTER TABLE stories 
+          ADD COLUMN connextraFormat TEXT AFTER description
+        `);
+        console.log('Added connextraFormat column to stories table');
+      } else {
+        console.log('connextraFormat column already exists in stories table');
+      }
+    } catch (error) {
+      console.error('Error checking or adding connextraFormat column to stories table:', error);
+    }
+    
+    // Add tags column to the stories table if it doesn't exist
+    try {
+      // Check if column exists first
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'stories' 
+        AND COLUMN_NAME = 'tags'
+      `);
+      
+      if (columns.length === 0) {
+        await connection.query(`
+          ALTER TABLE stories 
+          ADD COLUMN tags JSON DEFAULT NULL AFTER connextraFormat
+        `);
+        console.log('Added tags column to stories table');
+      } else {
+        console.log('tags column already exists in stories table');
+      }
+    } catch (error) {
+      console.error('Error checking or adding tags column to stories table:', error);
     }
     
     console.log('Database initialized successfully');

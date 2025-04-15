@@ -409,11 +409,17 @@ app.get('/api/projects/:projectId/stories', authenticateToken, async (req, res) 
     
     // Get all stories for the project
     const [stories] = await db.query(
-      'SELECT id, title, description, status, created_at, updated_at FROM stories WHERE project_id = ?',
+      'SELECT id, title, description, connextraFormat, tags, status, created_at, updated_at FROM stories WHERE project_id = ?',
       [projectId]
     );
     
-    res.json(stories);
+    // Convert tags from JSON string to array if not null
+    const processedStories = stories.map(story => ({
+      ...story,
+      tags: story.tags ? JSON.parse(story.tags) : []
+    }));
+    
+    res.json(processedStories);
   } catch (error) {
     console.error('Get stories error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -424,7 +430,7 @@ app.get('/api/projects/:projectId/stories', authenticateToken, async (req, res) 
 app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { title, description, status } = req.body;
+    const { title, description, connextraFormat, tags, status } = req.body;
     
     // Check if project exists and belongs to user
     const [projects] = await db.query(
@@ -445,15 +451,18 @@ app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res)
     const validStatuses = ['todo', 'in-progress', 'done'];
     const storyStatus = validStatuses.includes(status) ? status : 'todo';
     
+    // Convert tags array to JSON string
+    const tagsJson = tags ? JSON.stringify(tags) : null;
+    
     // Insert the new story
     const [result] = await db.query(
-      'INSERT INTO stories (title, description, status, project_id) VALUES (?, ?, ?, ?)',
-      [title, description || '', storyStatus, projectId]
+      'INSERT INTO stories (title, description, connextraFormat, tags, status, project_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [title, description || '', connextraFormat || '', tagsJson, storyStatus, projectId]
     );
     
     // Get the newly created story
     const [stories] = await db.query(
-      'SELECT id, title, description, status, created_at, updated_at FROM stories WHERE id = ?',
+      'SELECT id, title, description, connextraFormat, tags, status, created_at, updated_at FROM stories WHERE id = ?',
       [result.insertId]
     );
     
@@ -461,7 +470,13 @@ app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res)
       return res.status(404).json({ message: 'Story not found' });
     }
     
-    res.status(201).json(stories[0]);
+    // Convert tags from JSON string to array if not null
+    const story = {
+      ...stories[0],
+      tags: stories[0].tags ? JSON.parse(stories[0].tags) : []
+    };
+    
+    res.status(201).json(story);
   } catch (error) {
     console.error('Create story error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -472,7 +487,7 @@ app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res)
 app.put('/api/stories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, status } = req.body;
+    const { title, description, connextraFormat, tags, status } = req.body;
     
     // Check if story exists and belongs to a project owned by the user
     const [stories] = await db.query(
@@ -500,6 +515,16 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
       values.push(description);
     }
     
+    if (connextraFormat !== undefined) {
+      updates.push('connextraFormat = ?');
+      values.push(connextraFormat);
+    }
+    
+    if (tags !== undefined) {
+      updates.push('tags = ?');
+      values.push(JSON.stringify(tags));
+    }
+    
     if (status !== undefined) {
       const validStatuses = ['todo', 'in-progress', 'done'];
       if (validStatuses.includes(status)) {
@@ -523,7 +548,7 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
     
     // Get the updated story
     const [updatedStories] = await db.query(
-      'SELECT id, title, description, status, created_at, updated_at FROM stories WHERE id = ?',
+      'SELECT id, title, description, connextraFormat, tags, status, created_at, updated_at FROM stories WHERE id = ?',
       [id]
     );
     
@@ -531,7 +556,13 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Story not found' });
     }
     
-    res.json(updatedStories[0]);
+    // Convert tags from JSON string to array if not null
+    const story = {
+      ...updatedStories[0],
+      tags: updatedStories[0].tags ? JSON.parse(updatedStories[0].tags) : []
+    };
+    
+    res.json(story);
   } catch (error) {
     console.error('Update story error:', error);
     res.status(500).json({ message: 'Server error' });

@@ -122,7 +122,7 @@ h1 {
     margin-bottom: 20px;
 }
 
-label {
+.form-group label {
     display: block;
     margin-bottom: 6px;
     font-weight: 600;
@@ -434,21 +434,63 @@ button:hover {
 }
 
 .story-card {
-    background-color: white;
-    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
     padding: 12px;
     margin-bottom: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px var(--shadow-color);
     cursor: grab;
-    transition: transform 0.2s, box-shadow 0.2s;
-    color: var(--text-primary);
+    font-size: 14px;
+    transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .story-card:hover {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
 }
 
+.story-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.story-connextra {
+    font-size: 14px;
+    font-style: italic;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.story-description {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+}
+
+.story-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.tag {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    background-color: var(--primary-color);
+    color: white;
+    display: inline-block;
+    font-weight: 600;
+}
+
+/* Add story button */
 .add-story-btn {
     width: 100%;
     padding: 10px;
@@ -463,7 +505,9 @@ button:hover {
 }
 
 .add-story-btn:hover {
-    background-color: var(--hover-bg);
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
 }
 
 /* Project board modal styles */
@@ -475,7 +519,7 @@ button:hover {
 #storyForm {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
 }
 
 #storyForm input,
@@ -494,35 +538,43 @@ button:hover {
     resize: vertical;
 }
 
-#storyForm button {
-    padding: 12px;
-    background-color: #4CAF50;
+#storyForm .submit-btn {
+    margin-top: 10px;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 4px;
+    padding: 12px;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
     transition: background-color 0.3s;
 }
 
-#storyForm button:hover {
-    background-color: #45a049;
+#storyForm .submit-btn:hover {
+    background-color: var(--hover-color);
 }
 
 /* Dark mode handling for board elements */
-:root.dark-mode .story-card {
+body.dark-mode .story-card {
     background-color: #2d2d2d;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-:root.dark-mode .add-story-btn {
+body.dark-mode .story-connextra {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .tag {
+    background-color: var(--hover-color);
+}
+
+body.dark-mode .add-story-btn {
     border: 1px dashed var(--border-color);
 }
 
-:root.dark-mode #storyForm input,
-:root.dark-mode #storyForm textarea,
-:root.dark-mode #storyForm select {
+body.dark-mode #storyForm input,
+body.dark-mode #storyForm textarea,
+body.dark-mode #storyForm select {
     background-color: #2d2d2d;
     color: var(--text-primary);
     border-color: #444;
