@@ -33,8 +33,14 @@ export const usePreferences = () => {
 
   // Check authentication status
   useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    // First check sessionStorage (for session-only login)
+    let token = sessionStorage.getItem('token');
+    
+    // If not in sessionStorage, check localStorage (for remembered login)
+    if (!token) {
+      token = localStorage.getItem('token');
+    }
+    
     if (token) {
       setIsAuthenticated(true);
     }

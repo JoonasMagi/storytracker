@@ -76,15 +76,21 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
           return;
         }
 
-        // Store the token and user info
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // If remember me is not checked, use sessionStorage instead which will clear when browser closes
-        if (!rememberMe) {
+        // Store the token and user info based on rememberMe preference
+        if (rememberMe) {
+          // For persistent login across browser restarts, use localStorage
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          // Clear any session storage to avoid conflicts
+          sessionStorage.removeItem('token');
+          sessionStorage.removeItem('user');
+        } else {
+          // For session-only login (cleared when browser closes), use sessionStorage
           sessionStorage.setItem('token', data.token);
           sessionStorage.setItem('user', JSON.stringify(data.user));
-          // We keep token in localStorage too but will check sessionStorage first on app load
+          // Clear any local storage to ensure logout works properly
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
         
         // Clear form

@@ -60,10 +60,12 @@ const AuthContainer = ({ language, darkMode, toggleDarkMode, changeLanguage, isA
   
   // Handle logout
   const handleLogout = () => {
+    // Clear both storage types to ensure complete logout
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
+    
     setIsAuthenticated(false);
     setUserData(null);
     setShowSuccess(false);
@@ -91,14 +93,17 @@ const AuthContainer = ({ language, darkMode, toggleDarkMode, changeLanguage, isA
     const checkAuthStatus = async () => {
       setIsLoading(true);
       
+      // Check authentication in both storages
       // First check sessionStorage (for non-remembered sessions)
       let token = sessionStorage.getItem('token');
       let userStr = sessionStorage.getItem('user');
+      let isRemembered = false;
       
       // If not in sessionStorage, check localStorage (for remembered sessions)
       if (!token) {
         token = localStorage.getItem('token');
         userStr = localStorage.getItem('user');
+        isRemembered = !!token; // Track if this is a remembered session
       }
       
       if (!token) {
@@ -138,6 +143,13 @@ const AuthContainer = ({ language, darkMode, toggleDarkMode, changeLanguage, isA
         const data = await response.json();
         setUserData(data);
         setIsAuthenticated(true);
+        
+        // If this is a remembered session and token is still valid, ensure it's in localStorage
+        if (isRemembered) {
+          // Make sure localStorage has current data if it's a remembered session
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(data));
+        }
       } catch (error) {
         console.error('Authentication check error:', error);
         // Clear invalid tokens
