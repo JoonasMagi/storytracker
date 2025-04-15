@@ -61,7 +61,7 @@ app.post('/api/register', validateRegistration, async (req, res) => {
 // User Login
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     // Find user by email
     const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
@@ -86,9 +86,18 @@ app.post('/api/login', async (req, res) => {
       }
     };
 
-    jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
+    // Set token expiration based on "Remember me" option
+    const expiresIn = rememberMe ? '30d' : '1h';
+
+    jwt.sign(payload, JWT_SECRET, { expiresIn }, (err, token) => {
       if (err) throw err;
-      res.json({ token });
+      res.json({ 
+        token,
+        user: {
+          id: user.id,
+          email: user.email
+        }
+      });
     });
   } catch (error) {
     console.error('Login error:', error);

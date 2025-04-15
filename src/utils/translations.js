@@ -24,7 +24,10 @@ export const translations = {
     signUp: 'Sign Up',
     welcome: 'Welcome',
     welcomeSubtitle: 'You are logged in to your workspace',
-    logout: 'Logout'
+    logout: 'Logout',
+    rememberMe: 'Remember me',
+    loggingIn: 'Logging in...',
+    dashboardLoading: 'Loading your dashboard...'
   },
   et: {
     title: 'Loo konto',
@@ -50,7 +53,10 @@ export const translations = {
     signUp: 'Registreeru',
     welcome: 'Tere tulemast',
     welcomeSubtitle: 'Oled sisse logitud oma tööruumi',
-    logout: 'Logi välja'
+    logout: 'Logi välja',
+    rememberMe: 'Jäta mind meelde',
+    loggingIn: 'Sisselogimine...',
+    dashboardLoading: 'Töölaua laadimine...'
   },
   ru: {
     title: 'Создать аккаунт',
@@ -76,7 +82,10 @@ export const translations = {
     signUp: 'Регистрация',
     welcome: 'Добро пожаловать',
     welcomeSubtitle: 'Вы вошли в своё рабочее пространство',
-    logout: 'Выйти'
+    logout: 'Выйти',
+    rememberMe: 'Запомнить меня',
+    loggingIn: 'Выполняется вход...',
+    dashboardLoading: 'Загрузка рабочего пространства...'
   },
   es: {
     title: 'Crear cuenta',
@@ -102,6 +111,9 @@ export const translations = {
     signUp: 'Registrarse',
     welcome: 'Bienvenido',
     welcomeSubtitle: 'Has iniciado sesión en tu espacio de trabajo',
-    logout: 'Cerrar sesión'
+    logout: 'Cerrar sesión',
+    rememberMe: 'Recordarme',
+    loggingIn: 'Iniciando sesión...',
+    dashboardLoading: 'Cargando tu panel de control...'
   }
 };
