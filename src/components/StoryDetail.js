@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import MDEditor from '@uiw/react-md-editor';
+import ReactMarkdown from 'react-markdown';
+import StoryHistoryModal from './StoryHistoryModal';
 import '../styles/StoryDetail.css';
+import './StoryHistoryModal.css';
 
 const StoryDetail = ({ 
   storyId, 
@@ -12,6 +16,9 @@ const StoryDetail = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editMode, setEditMode] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [comment, setComment] = useState('');
   
@@ -96,6 +103,50 @@ const StoryDetail = ({
       setUsers(data);
     } catch (err) {
       console.error('Error fetching users:', err);
+    }
+  };
+
+  // Archive story
+  const archiveStory = async () => {
+    if (!storyId) return;
+    setArchiveLoading(true);
+    setError(null);
+    try {
+      const token = getToken();
+      if (!token) throw new Error('Not authenticated');
+      const response = await fetch(`/api/stories/${storyId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Failed to archive story');
+      if (onStoryUpdate) onStoryUpdate();
+      fetchStoryDetails();
+    } catch (err) {
+      setError(`Failed to archive story: ${err.message}`);
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
+  // Restore story
+  const restoreStory = async () => {
+    if (!storyId) return;
+    setRestoreLoading(true);
+    setError(null);
+    try {
+      const token = getToken();
+      if (!token) throw new Error('Not authenticated');
+      const response = await fetch(`/api/stories/${storyId}/restore`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Failed to restore story');
+      if (onStoryUpdate) onStoryUpdate();
+      fetchStoryDetails();
+    } catch (err) {
+      setError(`Failed to restore story: ${err.message}`);
+    } finally {
+      setRestoreLoading(false);
     }
   };
 
@@ -242,26 +293,26 @@ const StoryDetail = ({
               ) : (
                 <h2>{story.title}</h2>
               )}
-              
-              <div className="story-timestamps">
-                <div>Created: {formatDate(story.created_at)}</div>
-                <div>Updated: {formatDate(story.updated_at)}</div>
-              </div>
+            </div>
+
+            <div className="story-timestamps">
+              <div>Created: {formatDate(story.created_at)}</div>
+              <div>Updated: {formatDate(story.updated_at)}</div>
             </div>
 
             <div className="story-details">
               <div className="story-main-content">
                 {editMode ? (
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="description-textarea"
-                    placeholder="Add a description..."
-                  />
+                  <div data-color-mode={darkMode ? 'dark' : 'light'}>
+                    <MDEditor
+                      value={formData.description}
+                      onChange={val => setFormData(fd => ({ ...fd, description: val }))}
+                      height={200}
+                    />
+                  </div>
                 ) : (
-                  <div className="description">
-                    {story.description || "No description provided."}
+                  <div className="story-description markdown-body">
+                    <ReactMarkdown>{story.description || 'No description'}</ReactMarkdown>
                   </div>
                 )}
               </div>
@@ -347,9 +398,29 @@ const StoryDetail = ({
                   <button onClick={() => setEditMode(false)} className="cancel-button">Cancel</button>
                 </>
               ) : (
-                <button onClick={() => setEditMode(true)} className="edit-button">Edit Story</button>
+                <>
+                  <button onClick={() => setEditMode(true)} className="edit-button">Edit Story</button>
+                  <button onClick={() => setShowHistory(true)} className="history-button">History</button>
+                  {story && !story.deleted_at ? (
+                    <button onClick={archiveStory} className="archive-button" disabled={archiveLoading}>
+                      {archiveLoading ? 'Archiving...' : 'Archive'}
+                    </button>
+                  ) : (
+                    <button onClick={restoreStory} className="restore-button" disabled={restoreLoading}>
+                      {restoreLoading ? 'Restoring...' : 'Restore'}
+                    </button>
+                  )}
+                </>
               )}
             </div>
+
+            <StoryHistoryModal
+              isOpen={showHistory}
+              onClose={() => setShowHistory(false)}
+              storyId={storyId}
+              onRestore={fetchStoryDetails}
+              darkMode={darkMode}
+            />
 
             <div className="comments-section">
               <h3>Comments</h3>

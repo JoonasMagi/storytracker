@@ -1,0 +1,45 @@
+.modal.history-modal {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 700px;
+  margin: 2rem auto;
+  position: relative;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+}
+.modal.history-modal.dark {
+  background: #23272f;
+  color: #f1f1f1;
+}
+.modal-overlay {
+  background: rgba(0,0,0,0.5);
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 999;
+}
+.close-modal {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+}
+.history-list {
+  margin-top: 1rem;
+}
+.history-list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.history-list th, .history-list td {
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid #e2e2e2;
+}
+.history-list th {
+  background: #f9f9f9;
+}
+.modal.history-modal.dark .history-list th {
+  background: #2e3440;
+}

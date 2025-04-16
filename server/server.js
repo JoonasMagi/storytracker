@@ -7,7 +7,7 @@ const db = require('./db');
 
 // Initialize express app
 const app = express();
-const PORT = 3001; // Explicitly set port to 3001 without fallback
+const PORT = process.env.PORT || 3001; // Explicitly set port to 3001 without fallback
 
 // Middleware
 app.use(cors({
@@ -511,43 +511,41 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, connextraFormat, tags, status, priority, assignee_id } = req.body;
-    
-    // Check if story exists and belongs to a project owned by the user
+    // Kontrolli, kas lugu kuulub kasutajale
     const [stories] = await db.query(
       `SELECT s.* FROM stories s
       JOIN projects p ON s.project_id = p.id
       WHERE s.id = ? AND p.user_id = ?`,
       [id, req.user.id]
     );
-    
     if (stories.length === 0) {
       return res.status(404).json({ message: 'Story not found or unauthorized' });
     }
-    
-    // Build update query based on provided fields
+    // Salvesta eelmine versioon story_history tabelisse
+    const prevStory = stories[0];
+    await db.query(
+      'INSERT INTO story_history (story_id, title, description, version, changed_by) VALUES (?, ?, ?, ?, ?)',
+      [prevStory.id, prevStory.title, prevStory.description, prevStory.version, req.user.id]
+    );
+    // Ehita uuendatavad väljad
     const updates = [];
     const values = [];
-    
     if (title !== undefined) {
       updates.push('title = ?');
       values.push(title);
     }
-    
     if (description !== undefined) {
       updates.push('description = ?');
       values.push(description);
     }
-    
     if (connextraFormat !== undefined) {
       updates.push('connextraFormat = ?');
       values.push(connextraFormat);
     }
-    
     if (tags !== undefined) {
       updates.push('tags = ?');
       values.push(JSON.stringify(tags));
     }
-    
     if (status !== undefined) {
       const validStatuses = ['todo', 'in-progress', 'done'];
       if (validStatuses.includes(status)) {
@@ -555,7 +553,6 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
         values.push(status);
       }
     }
-    
     if (priority !== undefined) {
       const validPriorities = ['low', 'medium', 'high'];
       if (validPriorities.includes(priority)) {
@@ -563,37 +560,30 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
         values.push(priority);
       }
     }
-    
     if (assignee_id !== undefined) {
       updates.push('assignee_id = ?');
       values.push(assignee_id || null);
     }
-    
+    // Tõsta version +1
+    updates.push('version = version + 1');
     if (updates.length === 0) {
       return res.status(400).json({ message: 'No valid fields to update' });
     }
-    
-    // Add the story ID to values array
     values.push(id);
-    
-    // Update the story
     await db.query(
       `UPDATE stories SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`,
       values
     );
-    
-    // Get the updated story with assignee information
+    // Too uuendatud lugu koos assigneega
     const [updatedStories] = await db.query(
       `SELECT s.* FROM stories s
        JOIN projects p ON s.project_id = p.id
        WHERE s.id = ? AND p.user_id = ?`,
       [id, req.user.id]
     );
-    
     if (updatedStories.length === 0) {
       return res.status(404).json({ message: 'Story not found' });
     }
-    
     let assignee = null;
     if (updatedStories[0].assignee_id) {
       const [users] = await db.query(
@@ -604,13 +594,11 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
         assignee = users[0];
       }
     }
-    
     const story = {
       ...updatedStories[0],
       tags: updatedStories[0].tags ? JSON.parse(updatedStories[0].tags) : [],
       assignee
     };
-    
     res.json(story);
   } catch (error) {
     console.error('Update story error:', error);
@@ -618,29 +606,72 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete a story
+// Soft-delete a story (archive)
 app.delete('/api/stories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Check if story exists and belongs to a project owned by the user
+    // Kontrolli, kas lugu kuulub kasutajale
     const [stories] = await db.query(
       `SELECT s.* FROM stories s
       JOIN projects p ON s.project_id = p.id
       WHERE s.id = ? AND p.user_id = ?`,
       [id, req.user.id]
     );
-    
     if (stories.length === 0) {
       return res.status(404).json({ message: 'Story not found or unauthorized' });
     }
-    
-    // Delete the story
-    await db.query('DELETE FROM stories WHERE id = ?', [id]);
-    
-    res.json({ message: 'Story deleted successfully' });
+    // Märgi deleted_at ajaväli (soft-delete)
+    await db.query('UPDATE stories SET deleted_at = NOW() WHERE id = ?', [id]);
+    res.json({ message: 'Story archived successfully' });
   } catch (error) {
-    console.error('Delete story error:', error);
+    console.error('Soft-delete story error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Restore an archived story
+app.post('/api/stories/:id/restore', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [stories] = await db.query(
+      `SELECT s.* FROM stories s
+      JOIN projects p ON s.project_id = p.id
+      WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
+    );
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found or unauthorized' });
+    }
+    await db.query('UPDATE stories SET deleted_at = NULL WHERE id = ?', [id]);
+    res.json({ message: 'Story restored successfully' });
+  } catch (error) {
+    console.error('Restore story error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get story version history
+app.get('/api/stories/:id/history', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Kontrolli õigust
+    const [stories] = await db.query(
+      `SELECT s.*, p.user_id as project_owner_id FROM stories s
+      JOIN projects p ON s.project_id = p.id
+      WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
+    );
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found or unauthorized' });
+    }
+    // Too kogu ajalugu
+    const [history] = await db.query(
+      'SELECT id, title, description, version, changed_at, changed_by FROM story_history WHERE story_id = ? ORDER BY version DESC',
+      [id]
+    );
+    res.json(history);
+  } catch (error) {
+    console.error('Get story history error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

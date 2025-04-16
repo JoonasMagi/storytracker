@@ -38,8 +38,9 @@ async function testConnection() {
 
 // Initial database setup function
 async function initDatabase() {
+  let connection;
   try {
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
     
     // Create users table if it doesn't exist
     await connection.query(`
@@ -295,10 +296,10 @@ async function initDatabase() {
     `);
     
     console.log('Database initialized successfully');
-    connection.release();
   } catch (error) {
     console.error('Database initialization error:', error);
-    connection.release();
+  } finally {
+    if (connection) connection.release();
   }
 }
 
