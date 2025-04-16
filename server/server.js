@@ -41,7 +41,7 @@ app.post('/api/register', validateRegistration, async (req, res) => {
 
     // Check if user already exists
     const [existingUsers] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    
+
     if (existingUsers.length > 0) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
@@ -70,7 +70,7 @@ app.post('/api/login', async (req, res) => {
 
     // Find user by email
     const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    
+
     if (users.length === 0) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -96,7 +96,7 @@ app.post('/api/login', async (req, res) => {
 
     jwt.sign(payload, JWT_SECRET, { expiresIn }, (err, token) => {
       if (err) throw err;
-      res.json({ 
+      res.json({
         token,
         user: {
           id: user.id,
@@ -114,7 +114,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/profile', authenticateToken, async (req, res) => {
   try {
     const [users] = await db.query('SELECT id, email, created_at FROM users WHERE id = ?', [req.user.id]);
-    
+
     if (users.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -130,7 +130,7 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  
+
   if (!token) {
     return res.status(401).json({ message: 'Access denied. No token provided.' });
   }
@@ -153,13 +153,13 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
       'SELECT id, name, description, status, archived, display_order, created_at, updated_at FROM projects WHERE user_id = ? ORDER BY display_order ASC, updated_at DESC',
       [req.user.id]
     );
-    
+
     // Format the dates for each project
     const formattedProjects = projects.map(project => ({
       ...project,
       lastUpdated: project.updated_at
     }));
-    
+
     res.json(formattedProjects);
   } catch (error) {
     console.error('Get projects error:', error);
@@ -171,37 +171,37 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
 app.post('/api/projects', authenticateToken, async (req, res) => {
   try {
     const { name, description, status } = req.body;
-    
+
     // Validate input
     if (!name) {
       return res.status(400).json({ message: 'Project name is required' });
     }
-    
+
     // Valid statuses
     const validStatuses = ['in-progress', 'completed', 'on-hold'];
     const projectStatus = validStatuses.includes(status) ? status : 'in-progress';
-    
+
     // Insert the new project
     const [result] = await db.query(
       'INSERT INTO projects (name, description, status, user_id) VALUES (?, ?, ?, ?)',
       [name, description || null, projectStatus, req.user.id]
     );
-    
+
     // Get the newly created project
     const [projects] = await db.query(
       'SELECT id, name, description, status, archived, created_at, updated_at FROM projects WHERE id = ?',
       [result.insertId]
     );
-    
+
     if (projects.length === 0) {
       return res.status(404).json({ message: 'Project not found' });
     }
-    
+
     const project = {
       ...projects[0],
       lastUpdated: projects[0].updated_at
     };
-    
+
     res.status(201).json(project);
   } catch (error) {
     console.error('Create project error:', error);
@@ -213,24 +213,24 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
 app.put('/api/projects/order', authenticateToken, async (req, res) => {
   try {
     const { projectOrder } = req.body;
-    
+
     if (!Array.isArray(projectOrder)) {
       return res.status(400).json({ message: 'Project order must be an array of project IDs' });
     }
-    
+
     // Verify all projects belong to the user
     const [userProjects] = await db.query(
       'SELECT id FROM projects WHERE user_id = ?',
       [req.user.id]
     );
-    
+
     const userProjectIds = userProjects.map(p => p.id);
     const validOrder = projectOrder.every(id => userProjectIds.includes(id));
-    
+
     if (!validOrder) {
       return res.status(403).json({ message: 'Unauthorized access to one or more projects' });
     }
-    
+
     // Update the order for each project
     for (let i = 0; i < projectOrder.length; i++) {
       await db.query(
@@ -238,7 +238,7 @@ app.put('/api/projects/order', authenticateToken, async (req, res) => {
         [i, projectOrder[i], req.user.id]
       );
     }
-    
+
     res.json({ message: 'Project order updated successfully' });
   } catch (error) {
     console.error('Update project order error:', error);
@@ -251,26 +251,26 @@ app.put('/api/projects/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, status, archived } = req.body;
-    
+
     // Check if project exists and belongs to user
     const [projects] = await db.query(
       'SELECT * FROM projects WHERE id = ? AND user_id = ?',
       [id, req.user.id]
     );
-    
+
     if (projects.length === 0) {
       return res.status(404).json({ message: 'Project not found or unauthorized' });
     }
-    
+
     // Build update query based on provided fields
     const updates = [];
     const values = [];
-    
+
     if (name !== undefined) {
       updates.push('name = ?');
       values.push(name);
     }
-    
+
     if (status !== undefined) {
       const validStatuses = ['in-progress', 'completed', 'on-hold'];
       if (validStatuses.includes(status)) {
@@ -278,41 +278,41 @@ app.put('/api/projects/:id', authenticateToken, async (req, res) => {
         values.push(status);
       }
     }
-    
+
     if (archived !== undefined) {
       updates.push('archived = ?');
       values.push(archived);
     }
-    
+
     if (updates.length === 0) {
       return res.status(400).json({ message: 'No valid fields to update' });
     }
-    
+
     // Add the project ID and user ID to values array
     values.push(id);
     values.push(req.user.id);
-    
+
     // Update the project
     await db.query(
       `UPDATE projects SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ? AND user_id = ?`,
       values
     );
-    
+
     // Get the updated project
     const [updatedProjects] = await db.query(
       'SELECT id, name, status, archived, created_at, updated_at FROM projects WHERE id = ?',
       [id]
     );
-    
+
     if (updatedProjects.length === 0) {
       return res.status(404).json({ message: 'Project not found' });
     }
-    
+
     const updatedProject = {
       ...updatedProjects[0],
       lastUpdated: updatedProjects[0].updated_at
     };
-    
+
     res.json(updatedProject);
   } catch (error) {
     console.error('Update project error:', error);
@@ -324,23 +324,23 @@ app.put('/api/projects/:id', authenticateToken, async (req, res) => {
 app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if project exists and belongs to user
     const [projects] = await db.query(
       'SELECT * FROM projects WHERE id = ? AND user_id = ?',
       [id, req.user.id]
     );
-    
+
     if (projects.length === 0) {
       return res.status(404).json({ message: 'Project not found or unauthorized' });
     }
-    
+
     // Delete the project (stories will be deleted via ON DELETE CASCADE)
     await db.query(
       'DELETE FROM projects WHERE id = ? AND user_id = ?',
       [id, req.user.id]
     );
-    
+
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     console.error('Delete project error:', error);
@@ -354,29 +354,49 @@ app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
 app.get('/api/projects/:projectId/stories', authenticateToken, async (req, res) => {
   try {
     const { projectId } = req.params;
-    
+    const { includeArchived } = req.query;
+
     // Check if project exists and belongs to user
     const [projects] = await db.query(
       'SELECT * FROM projects WHERE id = ? AND user_id = ?',
       [projectId, req.user.id]
     );
-    
+
     if (projects.length === 0) {
       return res.status(404).json({ message: 'Project not found or unauthorized' });
     }
-    
+
     // Get all stories for the project
-    const [stories] = await db.query(
-      'SELECT id, title, description, connextraFormat, tags, status, created_at, updated_at FROM stories WHERE project_id = ?',
-      [projectId]
-    );
-    
-    // Convert tags from JSON string to array if not null
-    const processedStories = stories.map(story => ({
-      ...story,
-      tags: story.tags ? JSON.parse(story.tags) : []
+    let query = 'SELECT id, title, description, connextraFormat, tags, status, priority, assignee_id, archived, created_at, updated_at FROM stories WHERE project_id = ?';
+    const queryParams = [projectId];
+
+    // Only include non-archived stories by default
+    if (includeArchived !== 'true') {
+      query += ' AND (archived IS NULL OR archived = 0)';
+    }
+
+    const [stories] = await db.query(query, queryParams);
+
+    // Get assignee information for each story
+    const processedStories = await Promise.all(stories.map(async (story) => {
+      let assignee = null;
+      if (story.assignee_id) {
+        const [users] = await db.query(
+          'SELECT id, email FROM users WHERE id = ?',
+          [story.assignee_id]
+        );
+        if (users.length > 0) {
+          assignee = users[0];
+        }
+      }
+
+      return {
+        ...story,
+        tags: story.tags ? JSON.parse(story.tags) : [],
+        assignee
+      };
     }));
-    
+
     res.json(processedStories);
   } catch (error) {
     console.error('Get stories error:', error);
@@ -388,20 +408,20 @@ app.get('/api/projects/:projectId/stories', authenticateToken, async (req, res) 
 app.get('/api/stories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get story with user verification
     const [stories] = await db.query(
-      `SELECT s.*, p.user_id as project_owner_id 
+      `SELECT s.*, p.user_id as project_owner_id
        FROM stories s
        JOIN projects p ON s.project_id = p.id
        WHERE s.id = ? AND p.user_id = ?`,
       [id, req.user.id]
     );
-    
+
     if (stories.length === 0) {
       return res.status(404).json({ message: 'Story not found or unauthorized' });
     }
-    
+
     // Get assignee information if assigned
     let assignee = null;
     if (stories[0].assignee_id) {
@@ -413,10 +433,10 @@ app.get('/api/stories/:id', authenticateToken, async (req, res) => {
         assignee = users[0];
       }
     }
-    
+
     // Get comments for the story
     const [comments] = await db.query(
-      `SELECT c.id, c.content, c.created_at, c.updated_at, 
+      `SELECT c.id, c.content, c.created_at, c.updated_at,
         u.id as user_id, u.email as user_email
        FROM comments c
        JOIN users u ON c.user_id = u.id
@@ -424,7 +444,7 @@ app.get('/api/stories/:id', authenticateToken, async (req, res) => {
        ORDER BY c.created_at ASC`,
       [id]
     );
-    
+
     // Format the response
     const story = {
       ...stories[0],
@@ -441,7 +461,7 @@ app.get('/api/stories/:id', authenticateToken, async (req, res) => {
         }
       }))
     };
-    
+
     res.json(story);
   } catch (error) {
     console.error('Get story details error:', error);
@@ -454,51 +474,51 @@ app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res)
   try {
     const { projectId } = req.params;
     const { title, description, connextraFormat, tags, status } = req.body;
-    
+
     // Check if project exists and belongs to user
     const [projects] = await db.query(
       'SELECT * FROM projects WHERE id = ? AND user_id = ?',
       [projectId, req.user.id]
     );
-    
+
     if (projects.length === 0) {
       return res.status(404).json({ message: 'Project not found or unauthorized' });
     }
-    
+
     // Validate input
     if (!title) {
       return res.status(400).json({ message: 'Story title is required' });
     }
-    
+
     // Valid statuses
     const validStatuses = ['todo', 'in-progress', 'done'];
     const storyStatus = validStatuses.includes(status) ? status : 'todo';
-    
+
     // Convert tags array to JSON string
     const tagsJson = tags ? JSON.stringify(tags) : null;
-    
+
     // Insert the new story
     const [result] = await db.query(
       'INSERT INTO stories (title, description, connextraFormat, tags, status, project_id) VALUES (?, ?, ?, ?, ?, ?)',
       [title, description || '', connextraFormat || '', tagsJson, storyStatus, projectId]
     );
-    
+
     // Get the newly created story
     const [stories] = await db.query(
       'SELECT id, title, description, connextraFormat, tags, status, created_at, updated_at FROM stories WHERE id = ?',
       [result.insertId]
     );
-    
+
     if (stories.length === 0) {
       return res.status(404).json({ message: 'Story not found' });
     }
-    
+
     // Convert tags from JSON string to array if not null
     const story = {
       ...stories[0],
       tags: stories[0].tags ? JSON.parse(stories[0].tags) : []
     };
-    
+
     res.status(201).json(story);
   } catch (error) {
     console.error('Create story error:', error);
@@ -510,8 +530,8 @@ app.post('/api/projects/:projectId/stories', authenticateToken, async (req, res)
 app.put('/api/stories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, connextraFormat, tags, status, priority, assignee_id } = req.body;
-    
+    const { title, description, connextraFormat, tags, status, priority, assignee_id, changeSummary, archived } = req.body;
+
     // Check if story exists and belongs to a project owned by the user
     const [stories] = await db.query(
       `SELECT s.* FROM stories s
@@ -519,35 +539,35 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
       WHERE s.id = ? AND p.user_id = ?`,
       [id, req.user.id]
     );
-    
+
     if (stories.length === 0) {
       return res.status(404).json({ message: 'Story not found or unauthorized' });
     }
-    
+
     // Build update query based on provided fields
     const updates = [];
     const values = [];
-    
+
     if (title !== undefined) {
       updates.push('title = ?');
       values.push(title);
     }
-    
+
     if (description !== undefined) {
       updates.push('description = ?');
       values.push(description);
     }
-    
+
     if (connextraFormat !== undefined) {
       updates.push('connextraFormat = ?');
       values.push(connextraFormat);
     }
-    
+
     if (tags !== undefined) {
       updates.push('tags = ?');
       values.push(JSON.stringify(tags));
     }
-    
+
     if (status !== undefined) {
       const validStatuses = ['todo', 'in-progress', 'done'];
       if (validStatuses.includes(status)) {
@@ -555,7 +575,7 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
         values.push(status);
       }
     }
-    
+
     if (priority !== undefined) {
       const validPriorities = ['low', 'medium', 'high'];
       if (validPriorities.includes(priority)) {
@@ -563,25 +583,30 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
         values.push(priority);
       }
     }
-    
+
     if (assignee_id !== undefined) {
       updates.push('assignee_id = ?');
       values.push(assignee_id || null);
     }
-    
+
+    if (archived !== undefined) {
+      updates.push('archived = ?');
+      values.push(archived ? 1 : 0);
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ message: 'No valid fields to update' });
     }
-    
+
     // Add the story ID to values array
     values.push(id);
-    
+
     // Update the story
     await db.query(
       `UPDATE stories SET ${updates.join(', ')}, updated_at = NOW() WHERE id = ?`,
       values
     );
-    
+
     // Get the updated story with assignee information
     const [updatedStories] = await db.query(
       `SELECT s.* FROM stories s
@@ -589,11 +614,11 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
        WHERE s.id = ? AND p.user_id = ?`,
       [id, req.user.id]
     );
-    
+
     if (updatedStories.length === 0) {
       return res.status(404).json({ message: 'Story not found' });
     }
-    
+
     let assignee = null;
     if (updatedStories[0].assignee_id) {
       const [users] = await db.query(
@@ -604,13 +629,44 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
         assignee = users[0];
       }
     }
-    
+
+    // Save version history
+    // Get the current version number
+    const [versionResult] = await db.query(
+      'SELECT MAX(version_number) as max_version FROM story_versions WHERE story_id = ?',
+      [id]
+    );
+
+    const currentVersion = versionResult[0].max_version || 0;
+    const newVersion = currentVersion + 1;
+
+    // Insert the new version
+    await db.query(
+      `INSERT INTO story_versions (
+        story_id, title, description, connextraFormat, tags, status, priority, assignee_id, user_id, change_summary, version_number
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        updatedStories[0].title,
+        updatedStories[0].description,
+        updatedStories[0].connextraFormat,
+        updatedStories[0].tags,
+        updatedStories[0].status,
+        updatedStories[0].priority,
+        updatedStories[0].assignee_id,
+        req.user.id,
+        changeSummary || 'Updated story',
+        newVersion
+      ]
+    );
+
     const story = {
       ...updatedStories[0],
       tags: updatedStories[0].tags ? JSON.parse(updatedStories[0].tags) : [],
-      assignee
+      assignee,
+      version: newVersion
     };
-    
+
     res.json(story);
   } catch (error) {
     console.error('Update story error:', error);
@@ -618,11 +674,12 @@ app.put('/api/stories/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete a story
+// Archive a story (soft delete)
 app.delete('/api/stories/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
+    const { permanent } = req.query; // If true, permanently delete the story
+
     // Check if story exists and belongs to a project owned by the user
     const [stories] = await db.query(
       `SELECT s.* FROM stories s
@@ -630,17 +687,226 @@ app.delete('/api/stories/:id', authenticateToken, async (req, res) => {
       WHERE s.id = ? AND p.user_id = ?`,
       [id, req.user.id]
     );
-    
+
     if (stories.length === 0) {
       return res.status(404).json({ message: 'Story not found or unauthorized' });
     }
-    
-    // Delete the story
-    await db.query('DELETE FROM stories WHERE id = ?', [id]);
-    
-    res.json({ message: 'Story deleted successfully' });
+
+    if (permanent === 'true') {
+      // Permanently delete the story
+      await db.query('DELETE FROM stories WHERE id = ?', [id]);
+      res.json({ message: 'Story permanently deleted' });
+    } else {
+      // Soft delete (archive) the story
+      await db.query('UPDATE stories SET archived = TRUE, updated_at = NOW() WHERE id = ?', [id]);
+
+      // Save version history for the archive action
+      // Get the current version number
+      const [versionResult] = await db.query(
+        'SELECT MAX(version_number) as max_version FROM story_versions WHERE story_id = ?',
+        [id]
+      );
+
+      const currentVersion = versionResult[0].max_version || 0;
+      const newVersion = currentVersion + 1;
+
+      // Insert the new version with archive action
+      await db.query(
+        `INSERT INTO story_versions (
+          story_id, title, description, connextraFormat, tags, status, priority, assignee_id, user_id, change_summary, version_number
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          stories[0].title,
+          stories[0].description,
+          stories[0].connextraFormat,
+          stories[0].tags,
+          stories[0].status,
+          stories[0].priority,
+          stories[0].assignee_id,
+          req.user.id,
+          'Story archived',
+          newVersion
+        ]
+      );
+
+      res.json({ message: 'Story archived successfully' });
+    }
   } catch (error) {
-    console.error('Delete story error:', error);
+    console.error('Archive/delete story error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get story version history
+app.get('/api/stories/:id/versions', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if story exists and belongs to a project owned by the user
+    const [stories] = await db.query(
+      `SELECT s.* FROM stories s
+      JOIN projects p ON s.project_id = p.id
+      WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
+    );
+
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found or unauthorized' });
+    }
+
+    // Get all versions of the story
+    const [versions] = await db.query(
+      `SELECT sv.*, u.email as user_email
+       FROM story_versions sv
+       JOIN users u ON sv.user_id = u.id
+       WHERE sv.story_id = ?
+       ORDER BY sv.version_number DESC`,
+      [id]
+    );
+
+    // Format the response
+    const formattedVersions = versions.map(version => ({
+      id: version.id,
+      storyId: version.story_id,
+      title: version.title,
+      description: version.description,
+      connextraFormat: version.connextraFormat,
+      tags: version.tags ? JSON.parse(version.tags) : [],
+      status: version.status,
+      priority: version.priority,
+      versionNumber: version.version_number,
+      changeSummary: version.change_summary,
+      createdAt: version.created_at,
+      user: {
+        id: version.user_id,
+        email: version.user_email
+      }
+    }));
+
+    res.json(formattedVersions);
+  } catch (error) {
+    console.error('Get story versions error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Restore a story version
+app.post('/api/stories/:id/restore/:versionId', authenticateToken, async (req, res) => {
+  try {
+    const { id, versionId } = req.params;
+
+    // Check if story exists and belongs to a project owned by the user
+    const [stories] = await db.query(
+      `SELECT s.* FROM stories s
+      JOIN projects p ON s.project_id = p.id
+      WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
+    );
+
+    if (stories.length === 0) {
+      return res.status(404).json({ message: 'Story not found or unauthorized' });
+    }
+
+    // Get the version to restore
+    const [versions] = await db.query(
+      'SELECT * FROM story_versions WHERE id = ? AND story_id = ?',
+      [versionId, id]
+    );
+
+    if (versions.length === 0) {
+      return res.status(404).json({ message: 'Version not found' });
+    }
+
+    const versionToRestore = versions[0];
+
+    // Update the story with the version data
+    await db.query(
+      `UPDATE stories SET
+        title = ?,
+        description = ?,
+        connextraFormat = ?,
+        tags = ?,
+        status = ?,
+        priority = ?,
+        assignee_id = ?,
+        archived = FALSE,
+        updated_at = NOW()
+      WHERE id = ?`,
+      [
+        versionToRestore.title,
+        versionToRestore.description,
+        versionToRestore.connextraFormat,
+        versionToRestore.tags,
+        versionToRestore.status,
+        versionToRestore.priority,
+        versionToRestore.assignee_id,
+        id
+      ]
+    );
+
+    // Create a new version entry for the restore action
+    // Get the current version number
+    const [versionResult] = await db.query(
+      'SELECT MAX(version_number) as max_version FROM story_versions WHERE story_id = ?',
+      [id]
+    );
+
+    const currentVersion = versionResult[0].max_version || 0;
+    const newVersion = currentVersion + 1;
+
+    // Insert the new version with restore action
+    await db.query(
+      `INSERT INTO story_versions (
+        story_id, title, description, connextraFormat, tags, status, priority, assignee_id, user_id, change_summary, version_number
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        versionToRestore.title,
+        versionToRestore.description,
+        versionToRestore.connextraFormat,
+        versionToRestore.tags,
+        versionToRestore.status,
+        versionToRestore.priority,
+        versionToRestore.assignee_id,
+        req.user.id,
+        `Restored from version ${versionToRestore.version_number}`,
+        newVersion
+      ]
+    );
+
+    // Get the updated story with assignee information
+    const [updatedStories] = await db.query(
+      `SELECT s.* FROM stories s
+       JOIN projects p ON s.project_id = p.id
+       WHERE s.id = ? AND p.user_id = ?`,
+      [id, req.user.id]
+    );
+
+    let assignee = null;
+    if (updatedStories[0].assignee_id) {
+      const [users] = await db.query(
+        'SELECT id, email FROM users WHERE id = ?',
+        [updatedStories[0].assignee_id]
+      );
+      if (users.length > 0) {
+        assignee = users[0];
+      }
+    }
+
+    const story = {
+      ...updatedStories[0],
+      tags: updatedStories[0].tags ? JSON.parse(updatedStories[0].tags) : [],
+      assignee,
+      version: newVersion
+    };
+
+    res.json({
+      message: 'Story version restored successfully',
+      story
+    });
+  } catch (error) {
+    console.error('Restore story version error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -652,12 +918,12 @@ app.post('/api/stories/:storyId/comments', authenticateToken, async (req, res) =
   try {
     const { storyId } = req.params;
     const { content } = req.body;
-    
+
     // Validate input
     if (!content) {
       return res.status(400).json({ message: 'Comment content is required' });
     }
-    
+
     // Check if story exists and user has access to it
     const [stories] = await db.query(
       `SELECT s.* FROM stories s
@@ -665,31 +931,31 @@ app.post('/api/stories/:storyId/comments', authenticateToken, async (req, res) =
        WHERE s.id = ? AND p.user_id = ?`,
       [storyId, req.user.id]
     );
-    
+
     if (stories.length === 0) {
       return res.status(404).json({ message: 'Story not found or unauthorized' });
     }
-    
+
     // Insert the comment
     const [result] = await db.query(
       'INSERT INTO comments (content, story_id, user_id, created_at) VALUES (?, ?, ?, NOW())',
       [content, storyId, req.user.id]
     );
-    
+
     // Get the newly created comment
     const [comments] = await db.query(
-      `SELECT c.id, c.content, c.created_at, c.updated_at, 
+      `SELECT c.id, c.content, c.created_at, c.updated_at,
         u.id as user_id, u.email as user_email
        FROM comments c
        JOIN users u ON c.user_id = u.id
        WHERE c.id = ?`,
       [result.insertId]
     );
-    
+
     if (comments.length === 0) {
       return res.status(404).json({ message: 'Comment not found' });
     }
-    
+
     const comment = {
       id: comments[0].id,
       content: comments[0].content,
@@ -700,7 +966,7 @@ app.post('/api/stories/:storyId/comments', authenticateToken, async (req, res) =
         email: comments[0].user_email
       }
     };
-    
+
     res.status(201).json(comment);
   } catch (error) {
     console.error('Add comment error:', error);
@@ -713,38 +979,38 @@ app.put('/api/comments/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body;
-    
+
     // Validate input
     if (!content) {
       return res.status(400).json({ message: 'Comment content is required' });
     }
-    
+
     // Check if comment exists and belongs to user
     const [comments] = await db.query(
       'SELECT * FROM comments WHERE id = ? AND user_id = ?',
       [id, req.user.id]
     );
-    
+
     if (comments.length === 0) {
       return res.status(404).json({ message: 'Comment not found or unauthorized' });
     }
-    
+
     // Update the comment
     await db.query(
       'UPDATE comments SET content = ?, updated_at = NOW() WHERE id = ?',
       [content, id]
     );
-    
+
     // Get the updated comment
     const [updatedComments] = await db.query(
-      `SELECT c.id, c.content, c.created_at, c.updated_at, 
+      `SELECT c.id, c.content, c.created_at, c.updated_at,
         u.id as user_id, u.email as user_email
        FROM comments c
        JOIN users u ON c.user_id = u.id
        WHERE c.id = ?`,
       [id]
     );
-    
+
     const comment = {
       id: updatedComments[0].id,
       content: updatedComments[0].content,
@@ -755,7 +1021,7 @@ app.put('/api/comments/:id', authenticateToken, async (req, res) => {
         email: updatedComments[0].user_email
       }
     };
-    
+
     res.json(comment);
   } catch (error) {
     console.error('Update comment error:', error);
@@ -767,20 +1033,20 @@ app.put('/api/comments/:id', authenticateToken, async (req, res) => {
 app.delete('/api/comments/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if comment exists and belongs to user
     const [comments] = await db.query(
       'SELECT * FROM comments WHERE id = ? AND user_id = ?',
       [id, req.user.id]
     );
-    
+
     if (comments.length === 0) {
       return res.status(404).json({ message: 'Comment not found or unauthorized' });
     }
-    
+
     // Delete the comment
     await db.query('DELETE FROM comments WHERE id = ?', [id]);
-    
+
     res.json({ message: 'Comment deleted successfully' });
   } catch (error) {
     console.error('Delete comment error:', error);
@@ -789,7 +1055,7 @@ app.delete('/api/comments/:id', authenticateToken, async (req, res) => {
 });
 
 // Get all users for assignment
-app.get('/api/users', authenticateToken, async (req, res) => {
+app.get('/api/users', authenticateToken, async (_req, res) => {
   try {
     const [users] = await db.query('SELECT id, email FROM users');
     res.json(users);

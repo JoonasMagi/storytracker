@@ -20,6 +20,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     const [showProjectBoard, setShowProjectBoard] = useState(false);
     const [stories, setStories] = useState([]);
     const [showStoryModal, setShowStoryModal] = useState(false);
+    const [showArchived, setShowArchived] = useState(false);
     const [storyData, setStoryData] = useState({
         title: '',
         description: '',
@@ -278,7 +279,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     };
 
     // Handle opening project board
-    const handleOpenProjectBoard = async (project) => {
+    const handleOpenProjectBoard = async (project, includeArchived = false) => {
         setSelectedProject(project);
         setShowProjectBoard(true);
 
@@ -290,7 +291,8 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                 throw new Error('Not authenticated');
             }
 
-            const response = await fetch(`${API_BASE_URL}/api/projects/${project.id}/stories`, {
+            const url = `${API_BASE_URL}/api/projects/${project.id}/stories${includeArchived ? '?includeArchived=true' : ''}`;
+            const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -315,6 +317,18 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     const handleBackToProjects = () => {
         setSelectedProject(null);
         setShowProjectBoard(false);
+        setShowArchived(false);
+    };
+
+    // Toggle showing archived stories
+    const toggleShowArchived = async () => {
+        const newShowArchived = !showArchived;
+        setShowArchived(newShowArchived);
+
+        // Reload stories with the new archived filter
+        if (selectedProject) {
+            await handleOpenProjectBoard(selectedProject, newShowArchived);
+        }
     };
 
     // Handle adding a new story
@@ -457,13 +471,21 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
         setShowStoryDetail(false);
     };
 
-    // Handle updating a story after editing
+    // Handle updating a story after editing or deletion
     const handleStoryUpdate = (updatedStory) => {
-        setStories(stories.map(story =>
-            story.id === updatedStory.id
-                ? updatedStory
-                : story
-        ));
+        if (updatedStory === null) {
+            // Story was deleted, remove it from the stories array
+            setStories(stories.filter(story => story.id !== selectedStoryId));
+            setSelectedStoryId(null);
+            setShowStoryDetail(false);
+        } else {
+            // Story was updated, replace it in the stories array
+            setStories(stories.map(story =>
+                story.id === updatedStory.id
+                    ? updatedStory
+                    : story
+            ));
+        }
     };
 
     // Close menu when clicking outside
@@ -664,6 +686,13 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                 </button>
                 <h2 id="projectTitle">{selectedProject?.name} - Project Board</h2>
                 <div className="header-actions">
+                    <button
+                        className={`archive-toggle-button ${showArchived ? 'active' : ''}`}
+                        onClick={toggleShowArchived}
+                        title={showArchived ? 'Hide archived stories' : 'Show archived stories'}
+                    >
+                        {showArchived ? 'Hide Archived' : 'Show Archived'}
+                    </button>
                     <button className="theme-toggle-button" onClick={toggleDarkMode}>
                         {darkMode ? '☀️' : '🌙'}
                     </button>
@@ -689,7 +718,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                 .map(story => (
                                     <div
                                         key={story.id}
-                                        className="story-card"
+                                        className={`story-card ${story.archived ? 'archived' : ''}`}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
                                         onClick={(e) => {
@@ -697,6 +726,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                             handleOpenStoryDetail(story.id);
                                         }}
                                     >
+                                        {story.archived && <div className="archived-badge">Archived</div>}
                                         <h4 className="story-title">
                                             {story.title}
                                         </h4>
@@ -740,7 +770,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                 .map(story => (
                                     <div
                                         key={story.id}
-                                        className="story-card"
+                                        className={`story-card ${story.archived ? 'archived' : ''}`}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
                                         onClick={(e) => {
@@ -748,6 +778,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                             handleOpenStoryDetail(story.id);
                                         }}
                                     >
+                                        {story.archived && <div className="archived-badge">Archived</div>}
                                         <h4 className="story-title">
                                             {story.title}
                                         </h4>
@@ -791,7 +822,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                 .map(story => (
                                     <div
                                         key={story.id}
-                                        className="story-card"
+                                        className={`story-card ${story.archived ? 'archived' : ''}`}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, story)}
                                         onClick={(e) => {
@@ -799,6 +830,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                             handleOpenStoryDetail(story.id);
                                         }}
                                     >
+                                        {story.archived && <div className="archived-badge">Archived</div>}
                                         <h4 className="story-title">
                                             {story.title}
                                         </h4>

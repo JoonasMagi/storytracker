@@ -261,13 +261,282 @@ select {
   color: #aaa;
 }
 
-.story-actions {
-  margin: 20px 0;
+/* Markdown Editor Styles */
+.markdown-editor {
+  width: 100%;
+}
+
+.editor-toolbar {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.preview-toggle {
+  background-color: #f0f0f0;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.preview-toggle.active {
+  background-color: #0066cc;
+  color: white;
+}
+
+.dark .preview-toggle {
+  background-color: #444;
+  color: #e0e0e0;
+}
+
+.dark .preview-toggle.active {
+  background-color: #0059b3;
+  color: white;
+}
+
+.markdown-hint {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.dark .markdown-hint {
+  color: #aaa;
+}
+
+.markdown-preview {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 12px;
+  min-height: 120px;
+  background-color: #f9f9f9;
+  line-height: 1.5;
+}
+
+.dark .markdown-preview {
+  background-color: #3d3d3d;
+  border-color: #555;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-content h1:first-child,
+.markdown-content h2:first-child,
+.markdown-content h3:first-child,
+.markdown-content h4:first-child,
+.markdown-content h5:first-child,
+.markdown-content h6:first-child {
+  margin-top: 0;
+}
+
+.markdown-content p {
+  margin-bottom: 1em;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: 1em;
+  padding-left: 2em;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 1em;
+  margin-left: 0;
+  color: #666;
+}
+
+.dark .markdown-content blockquote {
+  border-left-color: #555;
+  color: #aaa;
+}
+
+.markdown-content code {
+  background-color: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.dark .markdown-content code {
+  background-color: #444;
+}
+
+.markdown-content pre {
+  background-color: #f0f0f0;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.dark .markdown-content pre {
+  background-color: #444;
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.change-summary-container {
+  margin-top: 16px;
+}
+
+.change-summary-container label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.dark .change-summary-container label {
+  color: #ccc;
+}
+
+.change-summary-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.dark .change-summary-input {
+  background-color: #3d3d3d;
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+/* Version History Styles */
+.version-history-section {
+  margin: 20px 0;
+  border-top: 1px solid #eaeaea;
+  padding-top: 20px;
+}
+
+.dark .version-history-section {
+  border-top-color: #444;
+}
+
+.version-history-section h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.dark .version-history-section h3 {
+  color: #fff;
+}
+
+.versions-list {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-.edit-button, .save-button, .cancel-button {
+.version-item {
+  padding: 12px;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  border: 1px solid #eaeaea;
+}
+
+.dark .version-item {
+  background-color: #3d3d3d;
+  border-color: #444;
+}
+
+.version-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.version-number {
+  font-weight: 600;
+  color: #333;
+}
+
+.dark .version-number {
+  color: #fff;
+}
+
+.version-date {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.dark .version-date {
+  color: #aaa;
+}
+
+.version-summary {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.version-user {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.dark .version-user {
+  color: #bbb;
+}
+
+.restore-button {
+  padding: 6px 12px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.dark .restore-button {
+  background-color: #444;
+  color: #e0e0e0;
+}
+
+.restore-button:hover {
+  background-color: #e0e0e0;
+}
+
+.dark .restore-button:hover {
+  background-color: #555;
+}
+
+.no-versions {
+  font-style: italic;
+  color: #888;
+  padding: 12px;
+}
+
+.dark .no-versions {
+  color: #aaa;
+}
+
+/* Story Actions */
+.story-actions {
+  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.edit-button, .save-button, .cancel-button, .archive-button, .history-button, .delete-button {
   padding: 8px 16px;
   border-radius: 4px;
   font-weight: 500;
@@ -290,7 +559,27 @@ select {
   color: #666;
 }
 
-.dark .edit-button {
+.archive-button {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.archive-button.archive {
+  background-color: #f8d7da;
+  color: #dc3545;
+}
+
+.archive-button.unarchive {
+  background-color: #d4edda;
+  color: #28a745;
+}
+
+.history-button {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.dark .edit-button, .dark .history-button {
   background-color: #444;
   color: #e0e0e0;
 }
@@ -303,6 +592,39 @@ select {
 .dark .cancel-button {
   background-color: #444;
   color: #e0e0e0;
+}
+
+.dark .archive-button {
+  background-color: #444;
+  color: #aaa;
+}
+
+.dark .archive-button.archive {
+  background-color: #3d0a10;
+  color: #f8a5ac;
+}
+
+.dark .archive-button.unarchive {
+  background-color: #0a3822;
+  color: #8bd4a8;
+}
+
+.delete-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #c82333;
+}
+
+.dark .delete-button {
+  background-color: #b02a37;
+  color: white;
+}
+
+.dark .delete-button:hover {
+  background-color: #a52834;
 }
 
 .comments-section {
@@ -455,18 +777,18 @@ select {
     width: 95%;
     padding: 16px;
   }
-  
+
   .story-details {
     flex-direction: column;
   }
-  
+
   .story-sidebar {
     border-left: none;
     padding-left: 0;
     border-top: 1px solid #eaeaea;
     padding-top: 16px;
   }
-  
+
   .dark .story-sidebar {
     border-top-color: #444;
   }

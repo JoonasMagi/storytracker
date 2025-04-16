@@ -40,7 +40,7 @@ async function testConnection() {
 async function initDatabase() {
   try {
     const connection = await pool.getConnection();
-    
+
     // Create users table if it doesn't exist
     await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -51,7 +51,7 @@ async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
-    
+
     // Create projects table if it doesn't exist
     await connection.query(`
       CREATE TABLE IF NOT EXISTS projects (
@@ -67,21 +67,21 @@ async function initDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
-    
+
     // Add description column to the projects table if it doesn't exist
     try {
       // Check if column exists first
       const [descriptionColumns] = await connection.query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'projects' 
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'projects'
         AND COLUMN_NAME = 'description'
       `);
-      
+
       if (descriptionColumns.length === 0) {
         await connection.query(`
-          ALTER TABLE projects 
+          ALTER TABLE projects
           ADD COLUMN description TEXT AFTER name
         `);
         console.log('Added description column to projects table');
@@ -91,21 +91,21 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error checking or adding description column to projects table:', error);
     }
-    
+
     // Add display_order column to the projects table if it doesn't exist
     try {
       // Check if column exists first
       const [orderColumns] = await connection.query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'projects' 
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'projects'
         AND COLUMN_NAME = 'display_order'
       `);
-      
+
       if (orderColumns.length === 0) {
         await connection.query(`
-          ALTER TABLE projects 
+          ALTER TABLE projects
           ADD COLUMN display_order INT DEFAULT 0 AFTER archived
         `);
         console.log('Added display_order column to projects table');
@@ -115,21 +115,21 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error checking or adding display_order column to projects table:', error);
     }
-    
+
     // Add updated_at column to the projects table if it doesn't exist
     try {
       // Check if column exists first
       const [columns] = await connection.query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'projects' 
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'projects'
         AND COLUMN_NAME = 'updated_at'
       `);
-      
+
       if (columns.length === 0) {
         await connection.query(`
-          ALTER TABLE projects 
+          ALTER TABLE projects
           ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         `);
         console.log('Added updated_at column to projects table');
@@ -139,7 +139,7 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error checking or adding updated_at column to projects table:', error);
     }
-    
+
     // Create stories table if it doesn't exist
     await connection.query(`
       CREATE TABLE IF NOT EXISTS stories (
@@ -152,27 +152,28 @@ async function initDatabase() {
         priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
         assignee_id INT DEFAULT NULL,
         project_id INT NOT NULL,
+        archived BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
-    
+
     // Add updated_at column to the stories table if it doesn't exist
     try {
       // Check if column exists first
       const [columns] = await connection.query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'stories' 
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'stories'
         AND COLUMN_NAME = 'updated_at'
       `);
-      
+
       if (columns.length === 0) {
         await connection.query(`
-          ALTER TABLE stories 
+          ALTER TABLE stories
           ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         `);
         console.log('Added updated_at column to stories table');
@@ -182,21 +183,21 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error checking or adding updated_at column to stories table:', error);
     }
-    
+
     // Add connextraFormat column to the stories table if it doesn't exist
     try {
       // Check if column exists first
       const [columns] = await connection.query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'stories' 
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'stories'
         AND COLUMN_NAME = 'connextraFormat'
       `);
-      
+
       if (columns.length === 0) {
         await connection.query(`
-          ALTER TABLE stories 
+          ALTER TABLE stories
           ADD COLUMN connextraFormat TEXT AFTER description
         `);
         console.log('Added connextraFormat column to stories table');
@@ -206,21 +207,21 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error checking or adding connextraFormat column to stories table:', error);
     }
-    
+
     // Add tags column to the stories table if it doesn't exist
     try {
       // Check if column exists first
       const [columns] = await connection.query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'stories' 
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'stories'
         AND COLUMN_NAME = 'tags'
       `);
-      
+
       if (columns.length === 0) {
         await connection.query(`
-          ALTER TABLE stories 
+          ALTER TABLE stories
           ADD COLUMN tags JSON DEFAULT NULL AFTER connextraFormat
         `);
         console.log('Added tags column to stories table');
@@ -230,21 +231,21 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error checking or adding tags column to stories table:', error);
     }
-    
+
     // Add priority column to the stories table if it doesn't exist
     try {
       // Check if column exists first
       const [columns] = await connection.query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'stories' 
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'stories'
         AND COLUMN_NAME = 'priority'
       `);
-      
+
       if (columns.length === 0) {
         await connection.query(`
-          ALTER TABLE stories 
+          ALTER TABLE stories
           ADD COLUMN priority ENUM('low', 'medium', 'high') DEFAULT 'medium' AFTER status
         `);
         console.log('Added priority column to stories table');
@@ -254,21 +255,21 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error checking or adding priority column to stories table:', error);
     }
-    
+
     // Add assignee_id column to the stories table if it doesn't exist
     try {
       // Check if column exists first
       const [columns] = await connection.query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'stories' 
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'stories'
         AND COLUMN_NAME = 'assignee_id'
       `);
-      
+
       if (columns.length === 0) {
         await connection.query(`
-          ALTER TABLE stories 
+          ALTER TABLE stories
           ADD COLUMN assignee_id INT DEFAULT NULL AFTER priority,
           ADD CONSTRAINT fk_stories_assignee FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL
         `);
@@ -279,7 +280,31 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error checking or adding assignee_id column to stories table:', error);
     }
-    
+
+    // Add archived column to the stories table if it doesn't exist
+    try {
+      // Check if column exists first
+      const [columns] = await connection.query(`
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'stories'
+        AND COLUMN_NAME = 'archived'
+      `);
+
+      if (columns.length === 0) {
+        await connection.query(`
+          ALTER TABLE stories
+          ADD COLUMN archived BOOLEAN DEFAULT FALSE AFTER project_id
+        `);
+        console.log('Added archived column to stories table');
+      } else {
+        console.log('archived column already exists in stories table');
+      }
+    } catch (error) {
+      console.error('Error checking or adding archived column to stories table:', error);
+    }
+
     // Create comments table if it doesn't exist
     await connection.query(`
       CREATE TABLE IF NOT EXISTS comments (
@@ -293,7 +318,28 @@ async function initDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
-    
+
+    // Create story_versions table if it doesn't exist
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS story_versions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        story_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        connextraFormat TEXT,
+        tags JSON DEFAULT NULL,
+        status ENUM('todo', 'in-progress', 'done') DEFAULT 'todo',
+        priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
+        assignee_id INT DEFAULT NULL,
+        user_id INT NOT NULL,
+        change_summary TEXT,
+        version_number INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (story_id) REFERENCES stories(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     console.log('Database initialized successfully');
     connection.release();
   } catch (error) {
