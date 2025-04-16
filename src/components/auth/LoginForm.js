@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { translations } from '../../utils/translations';
 
 const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
@@ -12,6 +12,16 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
     password: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if there's a registered email to pre-fill
+  useEffect(() => {
+    const registeredEmail = sessionStorage.getItem('registeredEmail');
+    if (registeredEmail) {
+      setEmail(registeredEmail);
+      // Clear it after using it
+      sessionStorage.removeItem('registeredEmail');
+    }
+  }, []);
 
   const API_URL = 'http://localhost:3001/api';
   const t = translations[language];
@@ -36,7 +46,7 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Reset errors
     setErrors({
       email: '',
@@ -50,7 +60,7 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
 
     if (isEmailValid && isPasswordValid) {
       setIsSubmitting(true);
-      
+
       try {
         const response = await fetch(`${API_URL}/login`, {
           method: 'POST',
@@ -69,6 +79,15 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
         if (!response.ok) {
           if (data.message === 'Invalid credentials') {
             setErrorMessage(t.invalidCreds || 'The email or password you entered is incorrect. Please try again.');
+            // Add more specific guidance
+            if (data.field === 'email') {
+              setErrors(prev => ({ ...prev, email: t.emailNotRegistered || 'No account found with this email' }));
+            } else if (data.field === 'password') {
+              setErrors(prev => ({ ...prev, password: t.incorrectPassword || 'Incorrect password' }));
+            }
+          } else if (data.message === 'User not found') {
+            setErrorMessage('No account found with this email address. Please check your email or create a new account.');
+            setErrors(prev => ({ ...prev, email: t.emailNotRegistered || 'Email not registered' }));
           } else {
             setErrorMessage(data.message || t.serverError || 'An error occurred during login. Please try again later.');
           }
@@ -92,12 +111,12 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
         }
-        
+
         // Clear form
         setEmail('');
         setPassword('');
         setIsSubmitting(false);
-        
+
         // Call success handler
         onLoginSuccess(data.token, data.user);
         onSuccess();
@@ -116,7 +135,7 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
           {errorMessage}
         </div>
       )}
-      
+
       <div className="form-group">
         <label htmlFor="loginEmail">{t.email}</label>
         <input
@@ -129,7 +148,7 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
         />
         <span className="error-message">{errors.email}</span>
       </div>
-      
+
       <div className="form-group">
         <label htmlFor="loginPassword">{t.password}</label>
         <div className="password-wrapper">
@@ -152,7 +171,7 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
         </div>
         <span className="error-message">{errors.password}</span>
       </div>
-      
+
       <div className="form-group checkbox-group">
         <input
           type="checkbox"
@@ -162,10 +181,10 @@ const LoginForm = ({ language, onSuccess, onLoginSuccess }) => {
         />
         <label htmlFor="rememberMe">{t.rememberMe || 'Remember me'}</label>
       </div>
-      
-      <button 
-        type="submit" 
-        id="loginButton" 
+
+      <button
+        type="submit"
+        id="loginButton"
         disabled={isSubmitting}
         className="primary-button"
       >

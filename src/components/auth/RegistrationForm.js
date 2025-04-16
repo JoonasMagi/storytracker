@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { translations } from '../../utils/translations';
 
-const RegistrationForm = ({ language, onSuccess }) => {
+const RegistrationForm = ({ language, onSuccess, onAutoLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -60,7 +60,7 @@ const RegistrationForm = ({ language, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Reset errors
     setErrors({
       email: '',
@@ -75,7 +75,7 @@ const RegistrationForm = ({ language, onSuccess }) => {
 
     if (isEmailValid && isPasswordValid && isConfirmPasswordValid) {
       setIsSubmitting(true);
-      
+
       try {
         const response = await fetch(`${API_URL}/register`, {
           method: 'POST',
@@ -109,17 +109,51 @@ const RegistrationForm = ({ language, onSuccess }) => {
           return;
         }
 
-        // Clear form
-        setEmail('');
-        setPassword('');
-        setConfirmPassword('');
-        setIsSubmitting(false);
-        
         // Store language preference
         localStorage.setItem('preferredLanguage', language);
-        
-        // Call success handler
-        onSuccess();
+
+        // Now automatically log in the user
+        try {
+          const loginResponse = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email,
+              password,
+              rememberMe: true // Default to remember me for auto-login
+            })
+          });
+
+          const loginData = await loginResponse.json();
+
+          if (!loginResponse.ok) {
+            throw new Error(loginData.message || 'Auto-login failed');
+          }
+
+          // Store the token and user info
+          localStorage.setItem('token', loginData.token);
+          localStorage.setItem('user', JSON.stringify(loginData.user));
+
+          // Clear form
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setIsSubmitting(false);
+
+          // Call success handler with the email and auto-login handler with token and user
+          onSuccess(email);
+          if (onAutoLogin) {
+            onAutoLogin(loginData.token, loginData.user);
+          }
+        } catch (loginError) {
+          console.error('Auto-login error:', loginError);
+          // If auto-login fails, still consider registration successful
+          // but user will need to log in manually
+          setIsSubmitting(false);
+          onSuccess(email, false); // Pass false to indicate auto-login failed
+        }
       } catch (error) {
         console.error('Registration error:', error);
         setErrors(prev => ({ ...prev, email: t.serverError }));
@@ -141,7 +175,7 @@ const RegistrationForm = ({ language, onSuccess }) => {
         />
         <span className="error-message">{errors.email}</span>
       </div>
-      
+
       <div className="form-group">
         <label htmlFor="password">{t.password}</label>
         <div className="password-wrapper">
@@ -163,7 +197,7 @@ const RegistrationForm = ({ language, onSuccess }) => {
         </div>
         <span className="error-message">{errors.password}</span>
       </div>
-      
+
       <div className="form-group">
         <label htmlFor="confirmPassword">{t.confirmPassword}</label>
         <div className="password-wrapper">
@@ -185,10 +219,10 @@ const RegistrationForm = ({ language, onSuccess }) => {
         </div>
         <span className="error-message">{errors.confirmPassword}</span>
       </div>
-      
-      <button 
-        type="submit" 
-        id="registerButton" 
+
+      <button
+        type="submit"
+        id="registerButton"
         disabled={isSubmitting}
       >
         {isSubmitting ? 'Registering...' : t.register}

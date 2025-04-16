@@ -22,16 +22,39 @@ const AuthContainer = ({ language, darkMode, toggleDarkMode, changeLanguage, isA
   const t = translations[language];
 
   // Handle registration success
-  const handleRegisterSuccess = () => {
-    setShowSuccess(true);
-    setSuccessMessage(t.success);
+  const handleRegisterSuccess = (email, autoLoginFailed = false) => {
+    if (autoLoginFailed) {
+      // If auto-login failed, switch to login form
+      setActiveForm('login');
 
-    // Show toast notification
-    setToast({
-      visible: true,
-      message: 'Registration successful! Please log in.',
-      type: 'success'
-    });
+      // Show toast notification
+      setToast({
+        visible: true,
+        message: t.registrationComplete || 'Registration successful! Please log in with your new account.',
+        type: 'success'
+      });
+
+      // Store the email temporarily to pre-fill the login form
+      sessionStorage.setItem('registeredEmail', email);
+    } else {
+      // Show toast notification for successful registration
+      setToast({
+        visible: true,
+        message: t.registrationAndLoginSuccess || 'Registration successful! You have been automatically logged in.',
+        type: 'success'
+      });
+    }
+  };
+
+  // Handle auto-login after registration
+  const handleAutoLogin = (token, user) => {
+    // Set authentication state
+    setIsAuthenticated(true);
+    setUserData(user);
+
+    // Show success message
+    setShowSuccess(true);
+    setSuccessMessage(t.autoLoginSuccess || 'You have been automatically logged in!');
   };
 
   // Handle login success
@@ -256,6 +279,7 @@ const AuthContainer = ({ language, darkMode, toggleDarkMode, changeLanguage, isA
             <RegistrationForm
               language={language}
               onSuccess={handleRegisterSuccess}
+              onAutoLogin={handleAutoLogin}
             />
           ) : (
             <LoginForm

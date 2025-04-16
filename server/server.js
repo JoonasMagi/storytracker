@@ -7,7 +7,7 @@ const db = require('./db');
 
 // Initialize express app
 const app = express();
-const PORT = 3001; // Explicitly set port to 3001 without fallback
+const PORT = process.env.SERVER_PORT  // Explicitly set port to 3001 without fallback
 
 // Middleware
 app.use(cors({
