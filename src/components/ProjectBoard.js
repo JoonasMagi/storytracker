@@ -34,22 +34,35 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     const [selectedStoryId, setSelectedStoryId] = useState(null);
     const [showStoryDetail, setShowStoryDetail] = useState(false);
 
-    // Get token from localStorage
+    // Get token from localStorage or sessionStorage
     const getToken = () => {
-        const token = localStorage.getItem('token');
+        // First check sessionStorage (for session-only login)
+        let token = sessionStorage.getItem('token');
+
+        // If not in sessionStorage, check localStorage (for remembered login)
+        if (!token) {
+            token = localStorage.getItem('token');
+        }
+
         // Only log the first few characters of the token for security
         if (token) {
             const tokenPreview = token.substring(0, 10) + '...';
             console.log('Token found:', tokenPreview);
         } else {
-            console.log('No token found in localStorage');
+            console.log('No token found in storage');
         }
         return token;
     };
 
     // Fetch all projects when component mounts
     useEffect(() => {
-        fetchProjects();
+        const token = getToken();
+        if (token) {
+            fetchProjects();
+        } else {
+            console.error('No authentication token found. Please log in.');
+            setError('Authentication required. Please log in.');
+        }
     }, []);
 
     // API call to fetch projects
@@ -109,7 +122,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
             if (!response.ok) {
                 throw new Error('Failed to update project order');
             }
-            
+
             console.log('Project order updated successfully');
         } catch (err) {
             console.error('Error updating project order:', err);
@@ -132,16 +145,16 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     // Function to format date
     const formatDate = (date) => {
         if (!date) return 'Unknown';
-        
-        const options = { 
-            year: 'numeric', 
-            month: 'short', 
+
+        const options = {
+            year: 'numeric',
+            month: 'short',
             day: 'numeric',
-            hour: '2-digit', 
+            hour: '2-digit',
             minute: '2-digit',
             hour12: true
         };
-        
+
         // Format: Apr 15, 2025, 01:36 PM
         return new Date(date).toLocaleDateString('en-US', options);
     };
@@ -156,7 +169,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     // Handle creating a new project
     const handleCreateProject = async (e) => {
         e.preventDefault();
-        
+
         setLoading(true);
         setError(null);
         try {
@@ -221,9 +234,9 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                 throw new Error('Failed to archive project');
             }
 
-            setProjects(projects.map(project => 
-                project.id === projectId 
-                    ? { ...project, archived: true } 
+            setProjects(projects.map(project =>
+                project.id === projectId
+                    ? { ...project, archived: true }
                     : project
             ));
         } catch (err) {
@@ -268,7 +281,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     const handleOpenProjectBoard = async (project) => {
         setSelectedProject(project);
         setShowProjectBoard(true);
-        
+
         setLoading(true);
         setError(null);
         try {
@@ -307,7 +320,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     // Handle adding a new story
     const handleAddStory = async (e) => {
         e.preventDefault();
-        
+
         setLoading(true);
         setError(null);
         try {
@@ -331,12 +344,12 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
 
             const newStory = await response.json();
             setStories([...stories, newStory]);
-            setStoryData({ 
-                title: '', 
-                description: '', 
-                connextraFormat: '', 
-                tags: [], 
-                status: 'todo' 
+            setStoryData({
+                title: '',
+                description: '',
+                connextraFormat: '',
+                tags: [],
+                status: 'todo'
             });
             setShowStoryModal(false);
         } catch (err) {
@@ -356,14 +369,14 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     const handleDrop = async (e, status) => {
         e.preventDefault();
         const storyId = parseInt(e.dataTransfer.getData('storyId'));
-        
+
         // Optimistically update UI
-        setStories(stories.map(story => 
-            story.id === storyId 
-                ? { ...story, status } 
+        setStories(stories.map(story =>
+            story.id === storyId
+                ? { ...story, status }
                 : story
         ));
-        
+
         // Then update on server
         try {
             const token = getToken();
@@ -409,25 +422,25 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     const handleProjectDrop = (e, targetProject) => {
         e.preventDefault();
         const draggedProjectId = parseInt(e.dataTransfer.getData('projectId'));
-        
+
         if (draggedProjectId === targetProject.id) return;
-        
+
         // Find the positions of the dragged and target projects
         const projectsCopy = [...projects];
         const draggedIndex = projectsCopy.findIndex(p => p.id === draggedProjectId);
         const targetIndex = projectsCopy.findIndex(p => p.id === targetProject.id);
-        
+
         if (draggedIndex === -1 || targetIndex === -1) return;
-        
+
         // Remove the dragged project from its position
         const [draggedProject] = projectsCopy.splice(draggedIndex, 1);
-        
+
         // Insert it at the new position
         projectsCopy.splice(targetIndex, 0, draggedProject);
-        
+
         // Update the state with the new order
         setProjects(projectsCopy);
-        
+
         // Call API to update the order in the backend
         updateProjectsOrder(projectsCopy.map(p => p.id));
     };
@@ -443,11 +456,11 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
         setSelectedStoryId(null);
         setShowStoryDetail(false);
     };
-    
+
     // Handle updating a story after editing
     const handleStoryUpdate = (updatedStory) => {
-        setStories(stories.map(story => 
-            story.id === updatedStory.id 
+        setStories(stories.map(story =>
+            story.id === updatedStory.id
                 ? updatedStory
                 : story
         ));
@@ -457,7 +470,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     useEffect(() => {
         const handleClickOutside = (event) => {
             // Close the menu if clicked outside of any menu or its trigger button
-            if (openMenuId && !event.target.closest('.project-menu-dropdown') && 
+            if (openMenuId && !event.target.closest('.project-menu-dropdown') &&
                 !event.target.closest('.menu-button')) {
                 setOpenMenuId(null);
             }
@@ -476,7 +489,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
             .split(',')
             .map(tag => tag.trim())
             .filter(tag => tag.length > 0);
-        
+
         setStoryData({...storyData, tags: tagArray});
     };
 
@@ -485,24 +498,27 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
         <div className="modern-projects-view">
             <div className="main-header">
                 <h1>My Projects</h1>
-                <button className="theme-toggle-button" onClick={toggleDarkMode}>
-                    {darkMode ? '☀️' : '🌙'}
-                </button>
+                <div className="header-actions">
+                    <button className="theme-toggle-button" onClick={toggleDarkMode}>
+                        {darkMode ? '☀️' : '🌙'}
+                    </button>
+                    <button className="logout-button" onClick={onLogout}>Logout</button>
+                </div>
             </div>
-            
+
             {error && <div className="error-message">{error}</div>}
-            
+
             <div className="search-controls">
-                <input 
-                    type="text" 
-                    className="search-input" 
-                    placeholder="Search projects..." 
+                <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search projects..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                
+
                 <div className="filter-controls">
-                    <select 
+                    <select
                         className="status-filter"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
@@ -512,8 +528,8 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                         <option value="completed">Completed</option>
                         <option value="on-hold">On Hold</option>
                     </select>
-                    
-                    <button 
+
+                    <button
                         className="new-project-button"
                         onClick={() => setShowNewProjectModal(true)}
                     >
@@ -532,9 +548,9 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                         </div>
                     ) : (
                         filteredProjects.map(project => (
-                            <div 
-                                key={project.id} 
-                                className="modern-project-card" 
+                            <div
+                                key={project.id}
+                                className="modern-project-card"
                                 onClick={() => handleOpenProjectBoard(project)}
                                 draggable
                                 onDragStart={(e) => handleProjectDragStart(e, project)}
@@ -544,8 +560,8 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                 <div className="dragging-helper">⋮⋮</div>
                                 <div className="project-header">
                                     <h3>{project.name}</h3>
-                                    <button 
-                                        className="menu-button" 
+                                    <button
+                                        className="menu-button"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setOpenMenuId(openMenuId === project.id ? null : project.id);
@@ -555,7 +571,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                     </button>
                                     {openMenuId === project.id && (
                                         <div className="project-menu-dropdown">
-                                            <button 
+                                            <button
                                                 className="menu-item"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -565,7 +581,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                             >
                                                 {project.archived ? 'Unarchive' : 'Archive'}
                                             </button>
-                                            <button 
+                                            <button
                                                 className="menu-item delete"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -597,7 +613,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
             {showNewProjectModal && (
                 <div className="modal" style={{ display: 'block' }}>
                     <div className="modal-content">
-                        <span 
+                        <span
                             className="close-btn"
                             onClick={() => setShowNewProjectModal(false)}
                         >
@@ -654,24 +670,24 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                     <button className="logout-button" onClick={onLogout}>Logout</button>
                 </div>
             </div>
-            
+
             {error && <div className="error-message">{error}</div>}
-            
+
             {loading ? (
                 <div className="loading">Loading stories...</div>
             ) : (
                 <div className="board-container">
                     <div className="board-column" data-status="todo">
                         <h3>To Do</h3>
-                        <div 
-                            className="column-content" 
+                        <div
+                            className="column-content"
                             onDrop={(e) => handleDrop(e, 'todo')}
                             onDragOver={handleDragOver}
                         >
                             {stories
                                 .filter(story => story.status === 'todo')
                                 .map(story => (
-                                    <div 
+                                    <div
                                         key={story.id}
                                         className="story-card"
                                         draggable
@@ -701,7 +717,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                 ))
                             }
                         </div>
-                        <button 
+                        <button
                             className="add-story-btn"
                             onClick={() => {
                                 setStoryData({ ...storyData, status: 'todo' });
@@ -714,7 +730,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
 
                     <div className="board-column" data-status="in-progress">
                         <h3>In Progress</h3>
-                        <div 
+                        <div
                             className="column-content"
                             onDrop={(e) => handleDrop(e, 'in-progress')}
                             onDragOver={handleDragOver}
@@ -722,7 +738,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                             {stories
                                 .filter(story => story.status === 'in-progress')
                                 .map(story => (
-                                    <div 
+                                    <div
                                         key={story.id}
                                         className="story-card"
                                         draggable
@@ -752,7 +768,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                 ))
                             }
                         </div>
-                        <button 
+                        <button
                             className="add-story-btn"
                             onClick={() => {
                                 setStoryData({ ...storyData, status: 'in-progress' });
@@ -765,7 +781,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
 
                     <div className="board-column" data-status="done">
                         <h3>Done</h3>
-                        <div 
+                        <div
                             className="column-content"
                             onDrop={(e) => handleDrop(e, 'done')}
                             onDragOver={handleDragOver}
@@ -773,7 +789,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                             {stories
                                 .filter(story => story.status === 'done')
                                 .map(story => (
-                                    <div 
+                                    <div
                                         key={story.id}
                                         className="story-card"
                                         draggable
@@ -803,7 +819,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                 ))
                             }
                         </div>
-                        <button 
+                        <button
                             className="add-story-btn"
                             onClick={() => {
                                 setStoryData({ ...storyData, status: 'done' });
@@ -820,7 +836,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
             {showStoryModal && (
                 <div id="storyModal" className="modal" style={{ display: 'block' }}>
                     <div className="modal-content">
-                        <span 
+                        <span
                             className="close-btn"
                             onClick={() => setShowStoryModal(false)}
                         >
@@ -831,51 +847,51 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                         <form id="storyForm" onSubmit={handleAddStory}>
                             <div className="form-group">
                                 <label htmlFor="storyTitle">Title</label>
-                                <input 
-                                    type="text" 
-                                    id="storyTitle" 
+                                <input
+                                    type="text"
+                                    id="storyTitle"
                                     placeholder="Story Title"
                                     value={storyData.title}
                                     onChange={(e) => setStoryData({...storyData, title: e.target.value})}
-                                    required 
+                                    required
                                 />
                             </div>
-                            
+
                             <div className="form-group">
                                 <label htmlFor="storyConnextra">Connextra Format</label>
-                                <textarea 
-                                    id="storyConnextra" 
+                                <textarea
+                                    id="storyConnextra"
                                     placeholder="As a [role], I want to [action] so that [benefit]"
                                     value={storyData.connextraFormat}
                                     onChange={(e) => setStoryData({...storyData, connextraFormat: e.target.value})}
                                     required
                                 />
                             </div>
-                            
+
                             <div className="form-group">
                                 <label htmlFor="storyDescription">Additional Description</label>
-                                <textarea 
-                                    id="storyDescription" 
+                                <textarea
+                                    id="storyDescription"
                                     placeholder="Additional details, acceptance criteria, etc."
                                     value={storyData.description}
                                     onChange={(e) => setStoryData({...storyData, description: e.target.value})}
                                 />
                             </div>
-                            
+
                             <div className="form-group">
                                 <label htmlFor="storyTags">Tags</label>
-                                <input 
-                                    type="text" 
-                                    id="storyTags" 
+                                <input
+                                    type="text"
+                                    id="storyTags"
                                     placeholder="Enter tags separated by commas (e.g. frontend, bug, urgent)"
                                     value={storyData.tags.join(', ')}
                                     onChange={(e) => handleTagInput(e.target.value)}
                                 />
                             </div>
-                            
+
                             <div className="form-group">
                                 <label htmlFor="storyStatus">Status</label>
-                                <select 
+                                <select
                                     id="storyStatus"
                                     value={storyData.status}
                                     onChange={(e) => setStoryData({...storyData, status: e.target.value})}
@@ -885,7 +901,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
                                     <option value="done">Done</option>
                                 </select>
                             </div>
-                            
+
                             <button type="submit" className="submit-btn" disabled={loading}>
                                 {loading ? 'Creating...' : 'Add Story'}
                             </button>
@@ -900,7 +916,7 @@ const ProjectBoard = ({ darkMode, language, toggleDarkMode, onLogout }) => {
     return (
         <div className={`modern-container ${darkMode ? 'dark-mode' : ''}`}>
             {showProjectBoard ? renderBoardView() : renderProjectsView()}
-            
+
             {/* Story Detail Modal */}
             {showStoryDetail && (
                 <StoryDetail
